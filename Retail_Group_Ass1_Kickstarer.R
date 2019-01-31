@@ -28,7 +28,7 @@ data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
 data$successful <- factor(data$successful, labels = c('NO', 'YES'))
 
 #We select only the fields with more relevant significant . We'll use USD Pledged as it's a normalized currency for all rojects
-data <- data[c('name','category','main_category','currency','deadline','goal','state','successful','usd.pledged')]
+data <- data[c('name','category','main_category','currency','deadline','goal','usd_goal_real','state','backers','country','successful','usd.pledged','usd_pledged_real')]
 
 # what is the proportion of our outcome variable?
 prop.table(table(data$successful))
