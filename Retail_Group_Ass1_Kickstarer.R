@@ -38,26 +38,22 @@ summary(data)
 # Data Preparation
 #################################################
 
-#Creation of the Binary result field
+#Creation of the Binary result column
 data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
 
 data$successful <- factor(data$successful, labels = c('NO', 'YES'))
 
 data <- data[c('category','main_category','currency','backers','country','deadline','name','goal','usd_goal_real','successful','usd.pledged','usd_pledged_real')]
 
-# dummy variables for factors/characters
+# Setting factors to each column
 data$category <- as.factor(data$category)
 data$main_category <- as.factor(data$main_category)
 data$currency <- as.factor(data$currency)
-data$backers <- as.factor(data$backers)
 data$country <- as.factor(data$country)
 
 # what is the proportion of our outcome variable?
 percentage <- prop.table(table(data$successful)) * 100
 cbind(freq=table(data$successful), percentage)
-
-# pick model gbm and find out what type of model it is
-getModelInfo()$gbm$type
 
 # split data into training and testing chunks
 set.seed(1234)
@@ -99,9 +95,7 @@ par(mfrow=c(1,5))
 #barplot for class breakdown
 plot(y)
 
-#I need to understand why the vector is not recognized.
-
-
+#I need to understand why the vector is not recognized for each of charts
 
 featurePlot(x=x, y=y, plot = "ellipse")
 
@@ -154,7 +148,7 @@ summary(results)
 dotplot(results)
 
 
-#summarize best model
+#summarize best model - This is assuming the lda give us the best approach.  But it can be any of the others, eg, knn, rpart, etc
 print(fit.lda)
 
 
