@@ -1,6 +1,6 @@
-###############################################################################################
-####################    Kickstarter lookalike and/or propensity model    #####################
-###############################################################################################
+################################################################
+####################    Kickstarter     #####################
+###############################################################
 
 library(lattice)
 library(ggplot2)
@@ -9,6 +9,19 @@ library(caret)
 #################################################################################
 ##########################    IMPORING DATASET     ##############################
 #################################################################################
+
+#Problem statement: Mitchel wants to be a new entrepreneur; recently graduated from York University 
+#would like to have one of his ideas being sponsored by Kickstarter.  He wants to explore whether his 
+#brand new is a good option to be sponsored. 
+
+#################################################
+#Data Source
+#################################################
+
+#The Data originally comes from Kaggle site, and the dataset is sourced from the kickstarter Project
+#https://www.kaggle.com/kemical/kickstarter-projects/home
+
+#Data loading
 getwd();
 data=read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
 
@@ -25,7 +38,7 @@ summary(data)
 # Data Preparation
 #################################################
 
-
+#Creation of the Binary result field
 data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
 
 data$successful <- factor(data$successful, labels = c('NO', 'YES'))
