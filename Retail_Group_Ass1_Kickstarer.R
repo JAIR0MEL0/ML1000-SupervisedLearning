@@ -1,13 +1,10 @@
 ###############################################################################################
 ####################    Kickstarter lookalike and/or propensity model    #####################
 ###############################################################################################
-
-
 library(lattice)
 library(ggplot2)
 library(caret)
 library(ellipse)
-#library(pROC)
 
 #################################################################################
 ##########################    IMPORING DATASET     ##############################
@@ -24,7 +21,6 @@ library(ellipse)
 #The Data originally comes from Kaggle site, and the dataset is sourced from the kickstarter Project
 #https://www.kaggle.com/kemical/kickstarter-projects/home
 
-
 getwd();
 data=read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
 
@@ -32,23 +28,19 @@ data=read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201
 ncol(data);
 nrow(data);
 
-
 #Develop a proposed set of drivers and relationships 
 #to inputs, state the set of assumptions related to the problem, define key metrics of success 
 #and describe how you have applied the ethical ML framework, identify and prioritize means of 
 #data acquisition, you proceed with the following sections. 
-
 
 #quickly preview data structure with HEAD(), STR(), and SUMMARY()
 head(data,10)
 str(data)
 summary(data)
 
-
 #################################################
 # Data Preparation
 #################################################
-
 
 #o	What is the purpose of the data set we selected (i.e., why was this data collected in the first place?). 
 #   How we would define and measure the outcomes from the dataset.
@@ -89,7 +81,6 @@ testDF  <- data[-splitIndex,]
 #Dimensions of the dataset
 dim(trainDF)
 
-
 #list types for each attribute
 sapply(trainDF, class)
 
@@ -98,8 +89,6 @@ sapply(trainDF, class)
 #I this case, we'll used the converted succesful as we only need to know if the project successed or not
 levels(trainDF$successful)
 
-
-
 #split input and output
 x <- trainDF[,1:5]
 y <- trainDF[,10]
@@ -107,13 +96,11 @@ y <- trainDF[,10]
 #################################################
 # Visualization
 #################################################
-
 #boxplot for each attribute on one image
 par(mfrow=c(1,5))
   for(i in 1:5){
     boxplot(x[,i], main=names(trainDF)[i])
 }
-
 
 #barplot for class breakdown
 plot(y)
@@ -127,8 +114,6 @@ featurePlot(x=x, y=y, plot ="box")
 scales <- list(x=list(relation="free"), y=list(relation="free"))
 featurePlot(x=x, y=y, plot="density", scales=scales)
 
-
-
 #Let's evaluate some alhorithms
 control <- trainControl(method = "cv", number = 10)
 metric <- "Accuracy"
@@ -136,7 +121,6 @@ metric <- "Accuracy"
 #################################################
 # model it
 #################################################
-
 
 #o	Describe the meaning and type of data (scale, values, etc.) for each attribute in the data file.
 #o	Verify data quality: Are there missing values? Duplicate data? Outliers? Are those mistakes? How do you deal with these problems?
@@ -149,8 +133,6 @@ metric <- "Accuracy"
 #o	Use internal and external validation measures to describe and compare the models and the predictions (some visual methods would be good).
 #o	Describe your results. What findings are the most interesting?
   
-
-
 #Now we are building some models
 # a) linear algorithms
 set.seed(7)
@@ -170,7 +152,6 @@ fit.svm <- train(successful~., data=trainDF, method="svmRadial", metric=metric, 
 set.seed(7)
 fit.rf <- train(successful~., data=trainDF, method="rf", metric=metric, trControl=control)
 
-
 #################################################
 # evalutate model
 #################################################
@@ -183,12 +164,8 @@ summary(results)
 #Visualize the accuracy of the models
 dotplot(results)
 
-
 #summarize best model
 print(fit.lda)
-
-
-
 
 #Let's make a prediction
 #Estimate skill of LDA on trainDF dataset
@@ -202,5 +179,3 @@ confusionMatrix(predictions,trainDF$successful)
 #  o	What other data should be collected?
 #  o	How often would the model need to be updated, etc.?
 #  o	Build a simple shiny app with a particular user in mind
-
-
