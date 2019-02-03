@@ -47,28 +47,29 @@ summary(data)
 #   How would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
 #o	Describe the final dataset that is used for classification (include a description of any newly formed variables you created).
 
+# Setting factors to each column
+data$backers <- as.factor(data$backers)
+data$main_category <- factor(data$main_category, labels = "music")
+
+data$category <- factor(data$category, labels = "music")
+data$currency <- factor(data$currency, labels = "USD")
+data$country <- factor(data$country, labels = "US")
+
+
+# df$main_category <- factor(df$main, labels = "class")
+#df$Survived <- factor(df$Survived, labels = c('No', 'Yes'))
 
 #Creation of the Binary result column
 data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
 
-data$successful <- factor(data$successful, labels = c('NO', 'YES'))
+data$successful <- factor(data$successful, labels = c('YES', 'NO'))
 
 #We will select only the fields that will help us to determine the probability of success
 data <- data[c('category','main_category','currency','backers','country','deadline','name','goal','usd_goal_real','successful','usd.pledged','usd_pledged_real')]
 
-# Setting factors to each column
-data$category <- as.factor(data$category)
-data$main_category <- as.factor(data$main_category)
-data$currency <- as.factor(data$currency)
-data$backers <- as.factor(data$backers)
-data$country <- as.factor(data$country)
 
-# what is the proportion of our outcome variable?
-percentage <- prop.table(table(data$successful)) * 100
-cbind(freq=table(data$successful), percentage)
 
-# pick model gbm and find out what type of model it is
-getModelInfo()$gbm$type
+summary(data[, c('main_category','category','currency','country', 'successful')])
 
 # split data into training and testing chunks
 set.seed(1234)
@@ -89,34 +90,10 @@ sapply(trainDF, class)
 #I this case, we'll used the converted succesful as we only need to know if the project successed or not
 levels(trainDF$successful)
 
-#split input and output
-x <- trainDF[,1:5]
-y <- trainDF[,10]
+# what is the proportion of our outcome variable?
+percentage <- prop.table(table(trainDF$successful)) * 100
+cbind(freq=table(trainDF$successful), percentage)
 
-#################################################
-# Visualization
-#################################################
-#boxplot for each attribute on one image
-par(mfrow=c(1,5))
-  for(i in 1:5){
-    boxplot(x[,i], main=names(trainDF)[i])
-}
-
-#barplot for class breakdown
-plot(y)
-
-featurePlot(x=x, y=y, plot = "ellipse")
-
-#Multivariate plots
-featurePlot(x=x, y=y, plot ="box")
-
-#density plots for each attribute by class value
-scales <- list(x=list(relation="free"), y=list(relation="free"))
-featurePlot(x=x, y=y, plot="density", scales=scales)
-
-#Let's evaluate some alhorithms
-control <- trainControl(method = "cv", number = 10)
-metric <- "Accuracy"
 
 #################################################
 # model it
@@ -132,25 +109,37 @@ metric <- "Accuracy"
 #  o	Perform supervised learning using several methods for different features.
 #o	Use internal and external validation measures to describe and compare the models and the predictions (some visual methods would be good).
 #o	Describe your results. What findings are the most interesting?
-  
+
 #Now we are building some models
+#Start with Lineal regression model
+trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
+
+model <- train(successful ~ category + main_category + country + currency, 
+               data = trainDF,
+               method = "glm",
+               preProcess = c('knnImpute', 'pca'),
+               na.action = na.pass,
+               trControl = trctl)
+
+model
+
 # a) linear algorithms
 set.seed(7)
-fit.lda <- train(successful~., data=trainDF, method="lda", metric=metric, trControl=control)
+fit.lda <- train(successful~., data=trainDF, method="lda", metric=metric, trControl=trctl)
 # b) nonlinear algorithms
 # CART
 set.seed(7)
-fit.cart <- train(successful~., data=trainDF, method="rpart", metric=metric, trControl=control)
+fit.cart <- train(successful~., data=trainDF, method="rpart", metric=metric, trControl=trctl)
 # kNN
 set.seed(7)
-fit.knn <- train(successful~., data=trainDF, method="knn", metric=metric, trControl=control)
+fit.knn <- train(successful~., data=trainDF, method="knn", metric=metric, trControl=trctl)
 # c) advanced algorithms
 # SVM
 set.seed(7)
-fit.svm <- train(successful~., data=trainDF, method="svmRadial", metric=metric, trControl=control)
+fit.svm <- train(successful~., data=trainDF, method="svmRadial", metric=metric, trControl=trctl)
 # Random Forest
 set.seed(7)
-fit.rf <- train(successful~., data=trainDF, method="rf", metric=metric, trControl=control)
+fit.rf <- train(successful~., data=trainDF, method="rf", metric=metric, trControl=trctl)
 
 #################################################
 # evalutate model
@@ -167,6 +156,7 @@ dotplot(results)
 #summarize best model
 print(fit.lda)
 
+
 #Let's make a prediction
 #Estimate skill of LDA on trainDF dataset
 predictions <- predict(fit.lda, trainDF)
@@ -179,3 +169,4 @@ confusionMatrix(predictions,trainDF$successful)
 #  o	What other data should be collected?
 #  o	How often would the model need to be updated, etc.?
 #  o	Build a simple shiny app with a particular user in mind
+
