@@ -1,0 +1,12 @@
+name: jairo
+title: jairo
+username:
+account: ignaciopalma
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 685039
+bundleId: 1853467
+url: https://ignaciopalma.shinyapps.io/jairo/
+when: 1549223584.36622
+asMultiple: FALSE
+asStatic: FALSE

@@ -5,6 +5,7 @@ library(lattice)
 library(ggplot2)
 library(caret)
 library(ellipse)
+library(rsconnect)
 
 #################################################################################
 ##########################    IMPORING DATASET     ##############################
@@ -22,7 +23,7 @@ library(ellipse)
 #https://www.kaggle.com/kemical/kickstarter-projects/home
 
 getwd();
-data=read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
+data=read.csv("./csv-files/ks-projects-201801.csv", header = TRUE, dec = ".")
 
 #check # of rows
 ncol(data);
@@ -49,7 +50,9 @@ summary(data)
 
 
 #Creation of the Binary result column
-data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
+
+data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')# ---> Shouldn't we take out undefined state or impute them ????
+# Conclusion over this can be wrong
 
 data$successful <- factor(data$successful, labels = c('NO', 'YES'))
 
@@ -74,7 +77,7 @@ getModelInfo()$gbm$type
 set.seed(1234)
 
 #This is to use the same data set for Training and Test
-splitIndex <- createDataPartition(data[,outcomeName], p = .75, list = FALSE, times = 1)
+splitIndex <- createDataPartition(data[,"successful"], p = .75, list = FALSE, times = 1)
 trainDF <- data[ splitIndex,]
 testDF  <- data[-splitIndex,]
 
@@ -97,7 +100,7 @@ y <- trainDF[,10]
 # Visualization
 #################################################
 #boxplot for each attribute on one image
-par(mfrow=c(1,5))
+par(mfrow=c(1,5)) # ---> adding class factor to an invalid object
   for(i in 1:5){
     boxplot(x[,i], main=names(trainDF)[i])
 }
