@@ -95,6 +95,49 @@ percentage <- prop.table(table(trainDF$successful)) * 100
 cbind(freq=table(trainDF$successful), percentage)
 
 
+
+#Visualization is not running yet.  Will need to review the parameters to ensure they are consistent . WIP
+#################################################
+# Visualization
+#################################################
+#boxplot for each attribute on one image
+par(mfrow=c(1,5))
+for(i in 1:5){
+  boxplot(x[,i], main=names(trainDF)[i])
+}
+
+#barplot for class breakdown
+plot(y)
+
+featurePlot(x=x, y=y, plot = "ellipse")
+
+featurePlot(x=trainDF[,1:4], y=train()[,5], plot="pairs", auto.key=list(columns=3))
+
+stack(list(x1= x1,x2 = x2))
+
+
+featurePlot(trainDF[,1:5], factor(rep(c("YES", "NO"),  25)), "ellipse")
+
+
+x <- matrix(rnorm(50*5),ncol=5)
+y <- factor(rep(c("A", "B"),  25))
+
+trellis.par.set(theme = col.whitebg(), warn = FALSE)
+featurePlot(x, y, "ellipse")
+featurePlot(x, y, "strip", jitter = TRUE)
+featurePlot(x, y, "box")
+featurePlot(x, y, "pairs")
+
+
+
+#Multivariate plots
+featurePlot(x=x, y=y, plot ="box")
+
+#density plots for each attribute by class value
+scales <- list(x=list(relation="free"), y=list(relation="free"))
+featurePlot(x=x, y=y, plot="density", scales=scales)
+
+
 #################################################
 # model it
 #################################################
