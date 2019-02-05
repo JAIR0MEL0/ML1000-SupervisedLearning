@@ -148,20 +148,13 @@ featurePlot(x=x, y=y, plot="density", scales=scales)
 #o	Describe your results. What findings are the most interesting?
 
 #Now we are building some models
-#General Linear Model Start with Lineal regression model
-#GLM is a supervised algorithm with a classic statistical technique (Supports thousands of input variables, text and transactional data) used for:
-#Classification and/or Regression
 
-trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
+# pick model gbm and find out what type of model it is
+getModelInfo()$gbm$type
 
-model <- train(successful ~ main_category + goal + backers, 
-               data = trainDF,
-               method = "glm",
-               preProcess = c('knnImpute', 'pca'),
-               na.action = na.pass,
-               trControl = trctl)
-
-model
+#Let's evaluate some alhorithms
+control <- trainControl(method = "cv", number = 10)
+metric <- "Accuracy"
 
 # a) Linear Discriminat Analysis
 set.seed(7)
@@ -193,12 +186,12 @@ dotplot(results)
 #summarize best model
 print(fit.lda)
 
-
 #Let's make a prediction
-#Estimate skill of LDA on trainDF dataset
-predictions <- predict(fit.lda, trainDF)
-confusionMatrix(predictions,trainDF$successful)
-
+#Estimate skill of Random Forest on trainDF dataset
+# Successful prediction
+predictions <- predict(fit.rf, testDF)
+head(predictions)
+confusionMatrix(predictions,testDF$successful)
 
 #Deployment
 #o	How useful is your model for interested parties (i.e., the companies or organizations that might want to use it)?
