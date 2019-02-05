@@ -148,7 +148,10 @@ featurePlot(x=x, y=y, plot="density", scales=scales)
 #o	Describe your results. What findings are the most interesting?
 
 #Now we are building some models
-#Start with Lineal regression model
+#General Linear Model Start with Lineal regression model
+#GLM is a supervised algorithm with a classic statistical technique (Supports thousands of input variables, text and transactional data) used for:
+#Classification and/or Regression
+
 trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
 
 model <- train(successful ~ main_category + goal + backers, 
