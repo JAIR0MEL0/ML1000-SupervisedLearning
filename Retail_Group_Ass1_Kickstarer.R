@@ -47,32 +47,26 @@ summary(data)
 #   How would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
 #o	Describe the final dataset that is used for classification (include a description of any newly formed variables you created).
 
-# Setting factors to each column
-data$backers <- as.factor(data$backers)
-data$main_category <- factor(data$main_category, labels = "music")
-
-data$category <- factor(data$category, labels = "music")
-data$currency <- factor(data$currency, labels = "USD")
-data$country <- factor(data$country, labels = "US")
-
-
-# df$main_category <- factor(df$main, labels = "class")
-#df$Survived <- factor(df$Survived, labels = c('No', 'Yes'))
-
 #Creation of the Binary result column
 data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
 
 data$successful <- factor(data$successful, labels = c('YES', 'NO'))
 
 #We will select only the fields that will help us to determine the probability of success
-data <- data[c('category','main_category','currency','backers','country','deadline','name','goal','usd_goal_real','successful','usd.pledged','usd_pledged_real')]
+data <- data[c('main_category','goal','backers','state','successful','country','category','currency','deadline','name','usd_goal_real','usd.pledged','usd_pledged_real')]
 
 
-
-summary(data[, c('main_category','category','currency','country', 'successful')])
+summary(data[, c('main_category','goal','backers', 'successful')])
 
 # split data into training and testing chunks
 set.seed(1234)
+
+# save the outcome for the glmnet model
+tempOutcome <- data$successful
+
+# generalize outcome and predictor variables
+outcomeName <- 'successful'
+#predictorsNames <- names(data)[names(data) != outcomeName]
 
 #This is to use the same data set for Training and Test
 splitIndex <- createDataPartition(data[,outcomeName], p = .75, list = FALSE, times = 1)
@@ -157,7 +151,7 @@ featurePlot(x=x, y=y, plot="density", scales=scales)
 #Start with Lineal regression model
 trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
 
-model <- train(successful ~ category + main_category + country + currency, 
+model <- train(successful ~ main_category + goal + backers, 
                data = trainDF,
                method = "glm",
                preProcess = c('knnImpute', 'pca'),
@@ -166,23 +160,20 @@ model <- train(successful ~ category + main_category + country + currency,
 
 model
 
-# a) linear algorithms
+# a) Linear Discriminat Analysis
 set.seed(7)
-fit.lda <- train(successful~., data=trainDF, method="lda", metric=metric, trControl=trctl)
+fit.lda <- train(successful ~ main_category + goal + backers, data=trainDF, method="lda", metric=metric, trControl=trctl)
 # b) nonlinear algorithms
-# CART
+# Classification Tree / Recursive Partitioning
 set.seed(7)
-fit.cart <- train(successful~., data=trainDF, method="rpart", metric=metric, trControl=trctl)
-# kNN
+fit.cart <- train(successful ~ main_category + goal + backers, data=trainDF, method="rpart", metric=metric, trControl=trctl)
+# k Nearest Neighbor
 set.seed(7)
-fit.knn <- train(successful~., data=trainDF, method="knn", metric=metric, trControl=trctl)
+fit.knn <- train(successful ~ main_category + goal + backers, data=trainDF, method="knn", metric=metric, trControl=trctl)
 # c) advanced algorithms
-# SVM
+# SVM Support Vector Machine
 set.seed(7)
 fit.svm <- train(successful~., data=trainDF, method="svmRadial", metric=metric, trControl=trctl)
-# Random Forest
-set.seed(7)
-fit.rf <- train(successful~., data=trainDF, method="rf", metric=metric, trControl=trctl)
 
 #################################################
 # evalutate model
