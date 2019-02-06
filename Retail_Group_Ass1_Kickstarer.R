@@ -89,6 +89,45 @@ percentage <- prop.table(table(trainDF$successful)) * 100
 cbind(freq=table(trainDF$successful), percentage)
 
 
+###############################################
+# Most of projects are from US but how is the 
+# ratio of success per country?
+###############################################
+
+# small table contains country and
+# total amount of projects
+projects_per_country <- data.frame(
+  country = levels(data$country), 
+  total = as.numeric(summary(data$country))
+)
+
+# initialize empty vectors
+YES_vector <- c()
+NO_vector <- c()
+
+# iterate over country levels
+for(i in 1:length(levels(data$country))) {
+  country_letters <- levels(data$country)[i]
+    
+  # fill the empty YES and NO vectors with successful and failed projects per country
+  YES_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$successful)[1]))
+  NO_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$successful)[2]))
+}
+
+# add the new columns our small table
+projects_per_country$YES <- YES_vector
+projects_per_country$NO <- NO_vector
+
+# calculate ratio of success per country
+projects_per_country$success_ratio <- (projects_per_country$YES / projects_per_country$total) * 100
+
+# plot ratio of success per country
+ggplot(projects_per_country, aes(x = country, y = success_ratio)) + geom_bar(stat="identity", fill = "steelblue") + coord_cartesian(ylim = c(0, 100)) 
+
+###############################################
+###############################################
+
+
 
 #Visualization is not running yet.  Will need to review the parameters to ensure they are consistent . WIP
 #################################################
