@@ -90,9 +90,26 @@ cbind(freq=table(trainDF$successful), percentage)
 
 
 ###############################################
+# Exploration of relation between amount of
+# projects per country and success ratio
+###############################################
+
+# plot country by number of occurrences
+projects_per_country <- data.frame(
+  country = levels(data$country), 
+  n_projects = as.numeric(summary(data$country))
+)
+
+# plot amount of projects per
+ggplot(projects_per_country, aes(x = country, y = n_projects)) + geom_bar(stat="identity", fill = "steelblue")
+
+###############################################
 # Most of projects are from US but how is the 
 # ratio of success per country?
 ###############################################
+
+# plot amount of projects per country
+ggplot(bplot, aes(x = country, y = n_projects)) + geom_bar(stat="identity", fill = "steelblue")
 
 # small table contains country and
 # total amount of projects
