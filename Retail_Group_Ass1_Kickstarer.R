@@ -113,14 +113,14 @@ plot_backers_by_main_category
 #by their deadline either.
 
 length.pct <- data %>%
-  filter(state %in% c("successful", "failed"), campaing <= 61) %>%
-  group_by(campaing, state) %>%
+  filter(state %in% c("successful", "failed"), campaign <= 61) %>%
+  group_by(campaign, state) %>%
   summarise(count=n()) %>%
   mutate(pct=count/sum(count))
 
-ggplot(length.pct[length.pct$state=="successful",], aes(campaing, pct)) + 
+ggplot(length.pct[length.pct$state=="successful",], aes(campaign, pct)) + 
   geom_point(colour="royalblue4", size=2.5) + ggtitle("Success vs. Campaing") + 
-  xlab("Project Campaing (Days)") + ylab("Success Rate (%)") + 
+  xlab("Project Campaign (Days)") + ylab("Success Rate (%)") + 
   scale_x_continuous(breaks=c(0,10,20,30,40,50,60)) + geom_vline(xintercept=30, colour="red") + 
   theme(plot.title=element_text(hjust=0.5), axis.title=element_text(size=12, face="bold"))
 
