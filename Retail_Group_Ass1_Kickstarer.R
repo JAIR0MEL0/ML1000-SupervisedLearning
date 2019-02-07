@@ -38,6 +38,28 @@ str(data)
 summary(data)
 
 
+#################################################
+# Data Preparation
+#################################################
+
+#o	What is the purpose of the data set we selected (i.e., why was this data collected in the first place?). 
+#   How we would define and measure the outcomes from the dataset.
+#   How would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
+#o	Describe the final dataset that is used for classification (include a description of any newly formed variables you created).
+
+#We will select only the fields that will help us to determine the probability of success
+
+data[["campaign"]] <- difftime(data$deadline ,data$launched , units = c("days"))
+
+data <- data[c('main_category','goal','backers','state','country','campaign','category','currency','deadline','name','usd_goal_real','usd.pledged','usd_pledged_real')]
+
+summary(data[, c('main_category','goal','backers', 'successful', 'campaign')])
+
+# what is the proportion of our outcome variable for Training data?
+percentage <- prop.table(table(trainDF$state)) * 100
+cbind(freq=table(dataDF$state), percentage)
+
+
 #JM: I added the PIE by State to learn more about the relevant States
 ########################
 #Understanding the Data
@@ -162,30 +184,6 @@ ggplot(projects_per_country, aes(x = country, y = success_ratio)) + geom_bar(sta
 
 ###############################################
 ###############################################
-
-#################################################
-# Data Preparation
-#################################################
-
-#o	What is the purpose of the data set we selected (i.e., why was this data collected in the first place?). 
-#   How we would define and measure the outcomes from the dataset.
-#   How would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
-#o	Describe the final dataset that is used for classification (include a description of any newly formed variables you created).
-
-#Creation of the Binary result column
-data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
-
-data$successful <- factor(data$successful, labels = c('YES', 'NO'))
-
-#We will select only the fields that will help us to determine the probability of success
-data <- data[c('main_category','goal','backers','state','successful','country','category','currency','deadline','name','usd_goal_real','usd.pledged','usd_pledged_real')]
-
-
-summary(data[, c('main_category','goal','backers', 'successful')])
-
-# what is the proportion of our outcome variable for Training data?
-percentage <- prop.table(table(trainDF$state)) * 100
-cbind(freq=table(dataDF$state), percentage)
 
 
 #################################################
