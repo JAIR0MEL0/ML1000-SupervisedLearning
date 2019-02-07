@@ -32,7 +32,7 @@ nrow(data);
 #and describe how you have applied the ethical ML framework, identify and prioritize means of 
 #data acquisition, you proceed with the following sections. 
 
-#quickly preview data structure with HEAD(), STR(), and SUMMARY()
+#quick preview data structure with HEAD(), STR(), and SUMMARY()
 head(data,10)
 str(data)
 summary(data)
@@ -47,6 +47,7 @@ summary(data[, c('main_category','goal','backers', 'state')])
 
 levels(data$state)
 
+#Let's review the %Successful projects
 pieState <- table(data$state)
 pct <- round(pieState/sum(mitabla)*100)
 lbls <- paste(lbls, pct) # add percents to labels 
@@ -54,17 +55,14 @@ lbls <- paste(lbls,"%",sep="") # ad % to labels
 pie(pieState,labels = lbls, col=rainbow(length(lbls)),
     main="Pie Chart of Countries")
 
-# what is the proportion of our outcome variable?
+# Summary of success in a table
 percentage <- prop.table(table(data$state)) * 100
 cbind(freq=table(data$state), percentage)
 
 
-#JM: This plots the Violin chart of Backer per Category
-
+#JM: Let's now analyze the Backers per success project
 #Filtering only successful projects
 only_successful_data <- data[data['state'] == 'successful',]
-
-summary(only_successful_data$state)
 
 plot_backers_by_main_category <- only_successful_data %>%
   plot_ly(
@@ -91,6 +89,7 @@ plot_backers_by_main_category <- only_successful_data %>%
 
 plot_backers_by_main_category
 
+#We'll examine the time 
 
 ###############################################
 # Exploration of relation between amount of
