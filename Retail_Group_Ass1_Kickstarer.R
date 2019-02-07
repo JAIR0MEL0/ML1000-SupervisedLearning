@@ -4,7 +4,6 @@
 library(lattice)
 library(ggplot2)
 library(caret)
-library(ellipse)
 
 #################################################################################
 ##########################    IMPORING DATASET     ##############################
@@ -38,56 +37,23 @@ head(data,10)
 str(data)
 summary(data)
 
-#################################################
-# Data Preparation
-#################################################
 
-#o	What is the purpose of the data set we selected (i.e., why was this data collected in the first place?). 
-#   How we would define and measure the outcomes from the dataset.
-#   How would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
-#o	Describe the final dataset that is used for classification (include a description of any newly formed variables you created).
+#JM: I added the PIE by State to learn more about the relevant States
+########################
+#Understanding the Data
+########################
 
-#Creation of the Binary result column
-data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
-
-data$successful <- factor(data$successful, labels = c('YES', 'NO'))
-
-#We will select only the fields that will help us to determine the probability of success
-data <- data[c('main_category','goal','backers','state','successful','country','category','currency','deadline','name','usd_goal_real','usd.pledged','usd_pledged_real')]
-
-
-summary(data[, c('main_category','goal','backers', 'successful')])
-
-# split data into training and testing chunks
-set.seed(1234)
-
-# save the outcome for the glmnet model
-tempOutcome <- data$successful
-
-# generalize outcome and predictor variables
-outcomeName <- 'successful'
-#predictorsNames <- names(data)[names(data) != outcomeName]
-
-#This is to use the same data set for Training and Test
-splitIndex <- createDataPartition(data[,outcomeName], p = .75, list = FALSE, times = 1)
-trainDF <- data[ splitIndex,]
-testDF  <- data[-splitIndex,]
-
-#Dimensions of the dataset
-dim(trainDF)
-
-#list types for each attribute
-sapply(trainDF, class)
-
-#There are only two level so it's a Binary classification problem.  
-#If we had selected state, there are multiple levels so it would be a multinomial classifgication.
-#I this case, we'll used the converted succesful as we only need to know if the project successed or not
-levels(trainDF$successful)
+#Percentage by State
+mitabla <- table(data$state)
+pct <- round(mitabla/sum(mitabla)*100)
+lbls <- paste(lbls, pct) # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(mitabla,labels = lbls, col=rainbow(length(lbls)),
+    main="Pie Chart of Countries")
 
 # what is the proportion of our outcome variable?
-percentage <- prop.table(table(trainDF$successful)) * 100
-cbind(freq=table(trainDF$successful), percentage)
-
+percentage <- prop.table(table(trainDF$state)) * 100
+cbind(freq=table(data$state), percentage)
 
 ###############################################
 # Exploration of relation between amount of
@@ -144,48 +110,28 @@ ggplot(projects_per_country, aes(x = country, y = success_ratio)) + geom_bar(sta
 ###############################################
 ###############################################
 
-
-
-#Visualization is not running yet.  Will need to review the parameters to ensure they are consistent . WIP
 #################################################
-# Visualization
+# Data Preparation
 #################################################
-#boxplot for each attribute on one image
-par(mfrow=c(1,5))
-for(i in 1:5){
-  boxplot(x[,i], main=names(trainDF)[i])
-}
 
-#barplot for class breakdown
-plot(y)
+#o	What is the purpose of the data set we selected (i.e., why was this data collected in the first place?). 
+#   How we would define and measure the outcomes from the dataset.
+#   How would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
+#o	Describe the final dataset that is used for classification (include a description of any newly formed variables you created).
 
-featurePlot(x=x, y=y, plot = "ellipse")
+#Creation of the Binary result column
+data[["successful"]] <- ifelse(data$state=="successful",'YES','NO')
 
-featurePlot(x=trainDF[,1:4], y=train()[,5], plot="pairs", auto.key=list(columns=3))
+data$successful <- factor(data$successful, labels = c('YES', 'NO'))
 
-stack(list(x1= x1,x2 = x2))
-
-
-featurePlot(trainDF[,1:5], factor(rep(c("YES", "NO"),  25)), "ellipse")
+#We will select only the fields that will help us to determine the probability of success
+data <- data[c('main_category','goal','backers','state','successful','country','category','currency','deadline','name','usd_goal_real','usd.pledged','usd_pledged_real')]
 
 
-x <- matrix(rnorm(50*5),ncol=5)
-y <- factor(rep(c("A", "B"),  25))
-
-trellis.par.set(theme = col.whitebg(), warn = FALSE)
-featurePlot(x, y, "ellipse")
-featurePlot(x, y, "strip", jitter = TRUE)
-featurePlot(x, y, "box")
-featurePlot(x, y, "pairs")
+summary(data[, c('main_category','goal','backers', 'successful')])
 
 
 
-#Multivariate plots
-featurePlot(x=x, y=y, plot ="box")
-
-#density plots for each attribute by class value
-scales <- list(x=list(relation="free"), y=list(relation="free"))
-featurePlot(x=x, y=y, plot="density", scales=scales)
 
 
 #################################################
@@ -203,7 +149,17 @@ featurePlot(x=x, y=y, plot="density", scales=scales)
 #o	Use internal and external validation measures to describe and compare the models and the predictions (some visual methods would be good).
 #o	Describe your results. What findings are the most interesting?
 
-#Now we are building some models
+# split data into training and testing chunks
+set.seed(1234)
+
+# generalize outcome and predictor variables
+outcomeName <- 'successful'
+#predictorsNames <- names(data)[names(data) != outcomeName]
+
+#This is to use the same data set for Training and Test
+splitIndex <- createDataPartition(data[,outcomeName], p = .75, list = FALSE, times = 1)
+trainDF <- data[ splitIndex,]
+testDF  <- data[-splitIndex,]
 
 # pick model gbm and find out what type of model it is
 getModelInfo()$gbm$type
