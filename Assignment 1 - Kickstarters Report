@@ -1,0 +1,63 @@
+Kickstarters: Give your ideas a boost in the right direction
+Sections
+
+1. Business and data understanding:  Here is where we reformulate a problem statement as an analytics problem, 
+develop a proposed set of drivers and relationships to inputs, state the set of assumptions related to the problem, 
+define key metrics of success and describe how you have applied the ethical ML framework, identify and prioritize 
+means of data acquisition.
+
+2. Data Preparation
+
+Describe the purpose of the data set you selected (i.e., why was this data collected in the first place?). 
+Describe how you would define and measure the outcomes from the dataset. 
+Describe how would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
+
+3. Target Variables
+
+Define and prepare your target variables.
+Use proper variable representations (int, float, one-hot, etc.). Use pre-processing methods (as needed) for dimensionality 
+reduction, scaling, etc. Remove variables that are not needed/useful for the analysis
+Describe the final dataset that is used for classification
+(include a description of any newly formed variables you created).
+
+4. Modeling and Evaluation
+
+Describe the meaning and type of data (scale, values, etc.) for each attribute in the data file.
+
+4.1 Data quality
+Verify if there missing values. Duplicate data? Outliers? Are those mistakes? 
+How do you deal with these problems?
+
+4.2 Statistics
+Give simple, appropriate statistics (range, mode, mean, median, variance, counts, etc.) for the most important attributes 
+and describe what they mean or if you found something interesting. Note: You can also use data from other sources for 
+comparison.
+
+4.3 Visualization
+Visualize the most important attributes appropriately (at least 5 attributes). 
+Important: Provide an interpretation for each chart. 
+
+Explain for each attribute why you chose the used visualization.
+Explore relationships between attributes: Look at the attributes via scatter plots, correlation, cross-tabulation, 
+group-wise averages, etc. as appropriate.
+
+Identify and explain interesting relationships between features and the class you are trying to predict (or cluster).
+
+Are there other features that could be added to the data or created from existing features?  Which ones?
+
+Perform supervised learning using several methods for different features.
+
+Use internal and external validation measures to describe and compare the models and the predictions 
+(some visual methods would be good).
+
+5.0 Result
+Describe your results. What findings are the most interesting?
+
+6.0 Deployment
+
+Description of wow useful is your model for interested parties (i.e., the companies or organizations that
+might want to use it)?
+How would you deploy your model for interested parties?
+What other data should be collected?
+How often would the model need to be updated, etc.?
+Build a simple shiny app with a particular user in mind
