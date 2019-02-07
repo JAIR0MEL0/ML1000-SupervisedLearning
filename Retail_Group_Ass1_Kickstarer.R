@@ -219,7 +219,7 @@ testDF  <- data[-splitIndex,]
 getModelInfo()$gbm$type
 
 #Let's evaluate some alhorithms
-control <- trainControl(method = "cv", number = 10)
+trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
 metric <- "Accuracy"
 
 # a) Linear Discriminat Analysis
