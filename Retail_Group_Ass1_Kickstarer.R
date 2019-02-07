@@ -162,8 +162,8 @@ for(i in 1:length(levels(data$country))) {
   country_letters <- levels(data$country)[i]
     
   # fill the empty YES and NO vectors with successful and failed projects per country
-  YES_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$successful)[1]))
-  NO_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$successful)[2]))
+  YES_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$state)[1]))
+  NO_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$state)[2]))
 }
 
 # add the new columns our small table
