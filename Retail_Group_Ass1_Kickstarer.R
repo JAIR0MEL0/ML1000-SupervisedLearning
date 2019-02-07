@@ -56,17 +56,11 @@ data <- data[c('main_category','goal','backers','state','country','campaign','ca
 
 summary(data[, c('main_category','goal','backers', 'successful', 'campaign')])
 
-# what is the proportion of our outcome variable for Training data?
-percentage <- prop.table(table(trainDF$state)) * 100
-cbind(freq=table(dataDF$state), percentage)
-
 
 #JM: I added the PIE by State to learn more about the relevant States
 ########################
 #Understanding the Data
 ########################
-
-summary(data[, c('main_category','goal','backers', 'state')])
 
 levels(data$state)
 
@@ -81,7 +75,6 @@ pie(pieState,labels = lbls, col=rainbow(length(lbls)),
 # Summary of success in a table
 percentage <- prop.table(table(data$state)) * 100
 cbind(freq=table(data$state), percentage)
-
 
 #JM: Let's now analyze the Backers per success project
 #Filtering only successful projects
@@ -186,6 +179,13 @@ ggplot(projects_per_country, aes(x = country, y = success_ratio)) + geom_bar(sta
 ###############################################
 ###############################################
 
+#Leaving only Successful and Failed projects
+
+data <- data[ which(data$state=='successful' 
+                         | data$state =='failed'), ]
+
+
+data$state <- factor(data$state, labels = c('successful', 'failed'))
 
 #################################################
 # model it
@@ -223,18 +223,18 @@ metric <- "Accuracy"
 
 # a) Linear Discriminat Analysis
 set.seed(7)
-fit.lda <- train(successful ~ main_category + goal + backers, data=trainDF, method="lda", metric=metric, trControl=trctl)
+fit.lda <- train(state ~ main_category + goal + backers, data=trainDF, method="lda", metric=metric, trControl=trctl)
 # b) nonlinear algorithms
 # Classification Tree / Recursive Partitioning
 set.seed(7)
-fit.cart <- train(successful ~ main_category + goal + backers, data=trainDF, method="rpart", metric=metric, trControl=trctl)
+fit.cart <- train(state ~ main_category + goal + backers, data=trainDF, method="rpart", metric=metric, trControl=trctl)
 # k Nearest Neighbor
 set.seed(7)
-fit.knn <- train(successful ~ main_category + goal + backers, data=trainDF, method="knn", metric=metric, trControl=trctl)
+fit.knn <- train(state ~ main_category + goal + backers, data=trainDF, method="knn", metric=metric, trControl=trctl)
 # c) advanced algorithms
 # SVM Support Vector Machine
 set.seed(7)
-fit.svm <- train(successful~., data=trainDF, method="svmRadial", metric=metric, trControl=trctl)
+fit.svm <- train(state~., data=trainDF, method="svmRadial", metric=metric, trControl=trctl)
 
 #################################################
 # evalutate model
@@ -256,7 +256,7 @@ print(fit.lda)
 # Successful prediction
 predictions <- predict(fit.rf, testDF)
 head(predictions)
-confusionMatrix(predictions,testDF$successful)
+confusionMatrix(predictions,testDF$state)
 
 #Deployment
 #o	How useful is your model for interested parties (i.e., the companies or organizations that might want to use it)?
