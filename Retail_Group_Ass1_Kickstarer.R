@@ -64,13 +64,14 @@ summary(data[, c('main_category','goal','backers', 'successful', 'campaign')])
 
 levels(data$state)
 
-#Let's review the %Successful projects
+#Let's review what are the most significant States
 pieState <- table(data$state)
-pct <- round(pieState/sum(mitabla)*100)
+pct <- round(pieState/sum(pieState)*100)
+lbls <- paste(names(pieState), "\n", pieState, sep="")
 lbls <- paste(lbls, pct) # add percents to labels 
 lbls <- paste(lbls,"%",sep="") # ad % to labels 
 pie(pieState,labels = lbls, col=rainbow(length(lbls)),
-    main="Pie Chart of Countries")
+    main="Pie Chart by State")
 
 # Summary of success in a table
 percentage <- prop.table(table(data$state)) * 100
