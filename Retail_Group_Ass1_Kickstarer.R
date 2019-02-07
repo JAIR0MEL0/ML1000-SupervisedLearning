@@ -206,7 +206,7 @@ data$state <- factor(data$state, labels = c('successful', 'failed'))
 set.seed(1234)
 
 # generalize outcome and predictor variables
-outcomeName <- 'successful'
+outcomeName <- 'state'
 #predictorsNames <- names(data)[names(data) != outcomeName]
 
 #This is to use the same data set for Training and Test
@@ -223,14 +223,14 @@ metric <- "Accuracy"
 
 # a) Linear Discriminat Analysis
 set.seed(7)
-fit.lda <- train(state ~ main_category + goal + backers, data=trainDF, method="lda", metric=metric, trControl=trctl)
+fit.lda <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="lda", metric=metric, trControl=trctl)
 # b) nonlinear algorithms
 # Classification Tree / Recursive Partitioning
 set.seed(7)
-fit.cart <- train(state ~ main_category + goal + backers, data=trainDF, method="rpart", metric=metric, trControl=trctl)
+fit.cart <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="rpart", metric=metric, trControl=trctl)
 # k Nearest Neighbor
 set.seed(7)
-fit.knn <- train(state ~ main_category + goal + backers, data=trainDF, method="knn", metric=metric, trControl=trctl)
+fit.knn <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="knn", metric=metric, trControl=trctl)
 # c) advanced algorithms
 # SVM Support Vector Machine
 set.seed(7)
