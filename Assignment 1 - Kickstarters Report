@@ -1,7 +1,14 @@
 Kickstarters: Give your ideas a boost in the right direction
 Sections
 
-1. Business and data understanding:  Here is where we reformulate a problem statement as an analytics problem, 
+1. Business and data understanding
+
+[JM: Our customers our new entrepreneurs recently graduated from universities around the world who would like to have one 
+of his ideas being sponsored by Kickstarter.  Before commiting meeting and efforts with Kickstarters they would like to 
+know how successful their ideas are sponsored by Kickstarters Investors.]
+
+
+Here is where we reformulate a problem statement as an analytics problem, 
 develop a proposed set of drivers and relationships to inputs, state the set of assumptions related to the problem, 
 define key metrics of success and describe how you have applied the ethical ML framework, identify and prioritize 
 means of data acquisition.
