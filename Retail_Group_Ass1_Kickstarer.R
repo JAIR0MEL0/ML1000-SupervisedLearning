@@ -43,17 +43,54 @@ summary(data)
 #Understanding the Data
 ########################
 
-#Percentage by State
-mitabla <- table(data$state)
-pct <- round(mitabla/sum(mitabla)*100)
+summary(data[, c('main_category','goal','backers', 'state')])
+
+levels(data$state)
+
+pieState <- table(data$state)
+pct <- round(pieState/sum(mitabla)*100)
 lbls <- paste(lbls, pct) # add percents to labels 
 lbls <- paste(lbls,"%",sep="") # ad % to labels 
-pie(mitabla,labels = lbls, col=rainbow(length(lbls)),
+pie(pieState,labels = lbls, col=rainbow(length(lbls)),
     main="Pie Chart of Countries")
 
 # what is the proportion of our outcome variable?
-percentage <- prop.table(table(trainDF$state)) * 100
+percentage <- prop.table(table(data$state)) * 100
 cbind(freq=table(data$state), percentage)
+
+
+#JM: This plots the Violin chart of Backer per Category
+
+#Filtering only successful projects
+only_successful_data <- data[data['state'] == 'successful',]
+
+summary(only_successful_data$state)
+
+plot_backers_by_main_category <- only_successful_data %>%
+  plot_ly(
+    x = ~main_category,
+    y = ~backers,
+    split = ~main_category,
+    type = 'violin',
+    box = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    )
+  ) %>% 
+  layout(
+    xaxis = list(
+      title = "Main Category"
+    ),
+    yaxis = list(
+      title = "Total Backers by Category",
+      zeroline = F
+    )
+  )
+
+plot_backers_by_main_category
+
 
 ###############################################
 # Exploration of relation between amount of
@@ -130,8 +167,9 @@ data <- data[c('main_category','goal','backers','state','successful','country','
 
 summary(data[, c('main_category','goal','backers', 'successful')])
 
-
-
+# what is the proportion of our outcome variable for Training data?
+percentage <- prop.table(table(trainDF$state)) * 100
+cbind(freq=table(dataDF$state), percentage)
 
 
 #################################################
