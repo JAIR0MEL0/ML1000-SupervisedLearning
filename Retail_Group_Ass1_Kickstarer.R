@@ -6,6 +6,7 @@ library(ggplot2)
 library(caret)
 library(plotly)
 
+#VIK :  I think we should break  this file into 2 scripts :  one for data exploration and other for training/testing.
 #################################################################################
 ##########################    IMPORING DATASET     ##############################
 #################################################################################
