@@ -11,6 +11,10 @@ Gathering the data:
 The data is downloaded from the Kaggle site where lots of dataset is available for analysis.  We identified Kickstarter as a great opportunity to learn and use Supervise Learning algorithms.
 <https://www.kaggle.com/kemical/kickstarter-projects/home>
  
+
+#Data Preparation
+The Purpose of the data set is to identify what type of project are successfully sponsored.  The data collected from Kaggle has two different year of Kickstarters: 2016 and 2018.  We choose the most recent data as a way to create better predictions.
+
 Analysis:
 We starting by loading the data into a data variable.
 
@@ -23,38 +27,272 @@ getwd();
 data <- read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
 ```
 
-We run a quick summary of the data to inspect the features of the data set:
+Let's do quick inspection of the data set:
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
+ncol(data);
+nrow(data);
+```
+quickly preview data structure with HEAD(), STR(), and SUMMARY()
+```{r State}
+head(data,10)
+str(data)
+summary(data)
+```
+#List of Features 
+Here is the definition and relevance for each feature:
+
+ID: Identificator of the rows.  This feature does not contains any relevant value and will be ingnore for this analysis.
+Name: Description of the project or product.  This is not a nominal feature we can use; we will ignore it for our analysis.
+Category: This is a classification associated to the type of project.  This is a relevant feature for analysis.
+Main Category: Group of Categories.  Also a relevant feature for our analysis.
+Currency: Currency of the country where the project will be developed.  There is a strong correlation between Currentcy and Country; so we will omit this feature during our analysis.
+Dead Line: This is the date when the goal money should be collected for the project to start.  We will consider this feature to create a new feature.
+Goal: Minimum Amount of money targeted to be used for the development of the project.  We will use this feature for our initial analysis.  However, instead of using the Goal we will use the USD Goal Real as it has already converted into common currency, USD.
+Launched: Date when the project is presented to kickstarters for funding. We identify this as a potential preductor in conjuction with the Deadline.
+We will create the new feature called Campaign, which is a differen between the Day the Campaign to collect the goal started and the deadline when the funding campaign is over:
+```{r}
+data[["campaign"]] <- as.integer(difftime(data$deadline ,data$launched , units = c("days")))
+```
+Pledged: Money amount finally granted for the project in the currency of the country.  Pledged has a strong correlation with Goal for those succesful project; failed will mean, a project has not achieve the goal.  In this case, we will omit Pledged and use the goal.
+State: Status of the project is the label of the data set, contains the values to determine whether the project is successful or not.  
+Backers: Number of sponsors.  This a relevant information for our initial analysis as we can determine whether there is a relationship between the number of backers for successful projects.
+Country: Place where the project is being developed.  We will use this feature during our initial analysis as we would like to determine if there is a relationship with the country for all the succesful projects.
+USD Pledged: This the amount granted in USD.  We will ignore this feature as there is strong correlation with the USD Goal Real.
+USD Pledged Real:  This the amount granted in USD.  We will ignore this feature as there is strong correlation with the USD Goal Real.
+USD Goal Real: This the goal amount in USD. We will use this feature for our initial analysis.
+
+##Cleaning Data
+We will clean any records with missing data in order to increase accuracy of the model
+Before Deleation
+```{r}
+nrow(data);
+data = data[complete.cases(data),]
+#After Deletion
+sum(!complete.cases(data))
+```
+
+##Understanding the Data
+Let see what are the type of states are recorded in the data set to identify potential unrelevant.
+
+```{r state, echo=FALSE}
+pieState <- table(data$state)
+pct <- round(pieState/sum(pieState)*100)
+lbls <- paste(names(pieState), "\n", pieState, sep="")
+lbls <- paste(lbls, pct) # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(pieState,labels = lbls, col=rainbow(length(lbls)),
+    main="Pie Chart by State")
+```
+As we can see, there are only two relevant of our outcome variable: Successful and Failed
+```{r}
+percentage <- prop.table(table(data$state)) * 100
+cbind(freq=table(data$state), percentage)
+
+```
+Then... Let's clear records with state different than Succesfull or Failed.
+
+```{r}
+data <- data[ which(data$state=='successful' 
+                         | data$state =='failed'), ]
+data$state <- factor(data$state, labels = c('successful', 'failed'))
+
+```
+
+Now, Let's analyze the relationship between backers and the successful projects per categories.  As we think, there is a strong relationship between the number of backers and the success of projects.  We should consider Backers as a strong predictor for succesfull projects.
+
+```{r echo=FALSE}}
+only_successful_data <- data[data['state'] == 'successful',]
+
+plot_backers_by_main_category <- only_successful_data %>%
+  plot_ly(
+    x = ~main_category,
+    y = ~backers,
+    split = ~main_category,
+    type = 'violin',
+    box = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    )
+  ) %>% 
+  layout(
+    xaxis = list(
+      title = "Main Category"
+    ),
+    yaxis = list(
+      title = "Total Backers by Category",
+      zeroline = F
+    )
+  )
+
+plot_backers_by_main_category
+```
+
+##Campaing might impact the success rate
+Kickstarter allow only 60 days. They recommends that projects be set to 30 days or less. The idea is that if you project has not been funded within 30 days, it's not likely to be funded by their deadline either.  Let's review if there is a relationship between the campaign time and the success of a project.
+```{r echo=FALSE}
+length.pct <- data %>%
+  filter(state %in% c("successful", "failed"), campaign <= 61) %>%
+  group_by(campaign, state) %>%
+  summarise(count=n()) %>%
+  mutate(pct=count/sum(count))
+
+ggplot(length.pct[length.pct$state=="successful",], aes(campaign, pct)) + 
+  geom_point(colour="royalblue4", size=2.5) + ggtitle("Success vs. Campaign") + 
+  xlab("Project Campaign (Days)") + ylab("Success Rate (%)") + 
+  scale_x_continuous(breaks=c(0,10,20,30,40,50,60)) + geom_vline(xintercept=30, colour="red") + 
+  theme(plot.title=element_text(hjust=0.5), axis.title=element_text(size=12, face="bold"))
+
+```
+##Success ratio of projects per country
+Let's analyze whether the country has any impact on the success of the project
+
+First let's visualize the projects per country:
+```{r}
+
+projects_per_country <- data.frame(
+  country = levels(data$country), 
+  n_projects = as.numeric(summary(data$country))
+)
+
+# plot amount of projects per
+ggplot(projects_per_country, aes(x = country, y = n_projects)) + geom_bar(stat="identity", fill = "steelblue")
 
 
+```
+Most of the prokects are from US, but how is the ration of success per country
+```{r echo=FALSE}
+ggplot(bplot, aes(x = country, y = n_projects)) + geom_bar(stat="identity", fill = "steelblue")
+
+# small table contains country and
+# total amount of projects
+projects_per_country <- data.frame(
+  country = levels(data$country), 
+  total = as.numeric(summary(data$country))
+)
+
+# initialize empty vectors
+YES_vector <- c()
+NO_vector <- c()
+
+# iterate over country levels
+for(i in 1:length(levels(data$country))) {
+  country_letters <- levels(data$country)[i]
+  
+  # fill the empty YES and NO vectors with successful and failed projects per country
+  YES_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$state)[1]))
+  NO_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$state)[2]))
+}
+
+# add the new columns our small table
+projects_per_country$YES <- YES_vector
+projects_per_country$NO <- NO_vector
+
+# calculate ratio of success per country
+projects_per_country$success_ratio <- (projects_per_country$YES / projects_per_country$total) * 100
+
+# plot ratio of success per country
+ggplot(projects_per_country, aes(x = country, y = success_ratio)) + geom_bar(stat="identity", fill = "steelblue") + coord_cartesian(ylim = c(0, 100)) 
+```
+
+#What features made the final list
+Main Category groups, Backers, Country, Goal in USD, Campaign and state as predictive variables
+```{r}
+
+#eliminate features that are duplicates
+data <- data[c("main_category","backers","country","usd_goal_real","campaign","state")]
+```
+##Preparatoion of Training and Test data
+```{r}
+# split data into training and testing chunks
+set.seed(1234)
+
+# generalize outcome and predictor variables
+outcomeName <- 'state'
+
+#This is to use the same data set for Training and Test
+splitIndex <- createDataPartition(data[,outcomeName], p = .75, list = FALSE, times = 1)
+trainDF <- data[ splitIndex,]
+testDF  <- data[-splitIndex,]
+summary(trainDF)
+summary(testDF)
+#Dimensions of the dataset
+dim(trainDF)
+```
+
+What are the types of attribues:
+```{r}
+sapply(trainDF, class)
+```
 
 
+How would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
+Describe the final dataset that is used for classification (include a description of any newly formed variables you created).
+
+```{r}
 
 
+#Feature selection
+rfImp <- randomForest(state ~ ., data = smallDF, ntree = 200, importance = TRUE)
+importance(rfImp,type=2)
 
 
+```
+##Evaluating the Models
+
+Let's review the models.  General Linear Model Start with Lineal regression model
+
+GLM is a supervised algorithm with a classic statistical technique (Supports thousands of input variables, text and transactional data) used for:  Classification and/or Regression
+
+# a) Linear Discriminant Analysis
+
+```{r}
+trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
+metric <- "Accuracy"
+
+set.seed(7)
+fit.lda <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="lda", metric=metric, trControl=trctl)
+```
+Nonlinear algorithms
+Classification Tree / Recursive Partitioning```
+```{r}
+set.seed(7)
+fit.cart <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="rpart", metric=metric, trControl=trctl)
+```
+Let's run SVM Support Vector Machine
+```{r}
+set.seed(7)
+fit.svm <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="svmRadial", metric=metric, trControl=trctl)
+```
+Final algorithm Random Forest
+```{r}
+set.seed(7)
+fit.rf <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="rf", metric=metric, trControl=trctl)
+```
+#Evaluating Models
+Now it's time to evaluate the models:
+#################################################
+```{r}
+results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf))
+summary(results)
+
+#Visualize the accuracy of the models
+dotplot(results)
+#summarize best model
+print(fit.rf)
+```
+##Running a Testing
+Estimate skill of Random Forest on trainDF dataset
+```{r}
+predictions <- predict(fit.rf, testDF)
+head(predictions)
+confusionMatrix(predictions,testDF$successful)
 
 
 ```
 
-## R Markdown
+Conclusion:
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
