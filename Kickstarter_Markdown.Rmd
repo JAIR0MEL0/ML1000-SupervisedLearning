@@ -1,0 +1,60 @@
+---
+title: "Kickstarter - Markdown"
+output: html_document
+---
+
+## Problem statement
+Our customers are new entrepreneurs recently graduated from universities around the world who would like to have one of his ideas being sponsored by Kickstarter.  Before commiting meeting and efforts with Kickstarters they would like to know how successful their ideas are sponsored by Kickstarters Investors.
+
+
+Gathering the data:
+The data is downloaded from the Kaggle site where lots of dataset is available for analysis.  We identified Kickstarter as a great opportunity to learn and use Supervise Learning algorithms.
+<https://www.kaggle.com/kemical/kickstarter-projects/home>
+ 
+Analysis:
+We starting by loading the data into a data variable.
+
+```{r}
+library(lattice)
+library(ggplot2)
+library(caret)
+library(plotly)
+getwd();
+data <- read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
+```
+
+We run a quick summary of the data to inspect the features of the data set:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+
+
+
+
+
+
+
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
