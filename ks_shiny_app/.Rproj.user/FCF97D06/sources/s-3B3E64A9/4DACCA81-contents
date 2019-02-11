@@ -1,0 +1,74 @@
+###############################################################################################
+####################    Kickstarter lookalike and/or propensity model    #####################
+###############################################################################################
+library(lattice)
+library(ggplot2)
+library(caret)
+#This script cleans the Kickstarter data and makes a few plots to explore the data.
+
+#getwd();
+
+KS_data = read.csv('./csv-files/ks-projects-201801.csv', header = TRUE, na.strings = c("NA","","#NA"))
+
+#check # of rows (378661,15)
+ncol(KS_data)
+nrow(KS_data)
+
+table(KS_data$state)
+#number of rows with invalid data = 3801
+sum(!complete.cases(KS_data))
+
+#Get rid of rows with invalid data and create a new dataframe 
+KS_valid = KS_data[complete.cases(KS_data),]
+
+#number of rows better be 378661 - 3801 = 374860
+nrow(KS_valid)
+
+#state column has 5 distinct values
+table(KS_valid$state)
+
+#Get rid of rows with state = canceled, live, suspended
+KS_valid_bi = subset(KS_valid,state=="failed" | state=="successful")
+
+#better be 374860-38757-2798-1843 = 331462
+nrow(KS_valid_bi)
+
+#Better not have any canceled or live or suspended
+table(KS_valid_bi$state)
+
+#Better be 0 since we have already eliminated invalid values
+sum(!complete.cases(KS_valid_bi))
+
+#Get rid of columns that are not relevant (ID,name,category,currency,goal,pledged,usd_pledged)
+cleandata <- KS_valid_bi[c("main_category","launched","state","backers","country","usd_pledged_real","usd_goal_real")]
+
+KS_valid_bi$days_on_deck <- as.numeric(as.Date(KS_valid_bi$deadline) - as.Date(KS_valid_bi$launched))
+#dimension of cleandata is (331462,8)
+
+mean(cleandata$backers)
+#min, max = (0,219382); mean,median = (116,15)
+ggplot(data=cleandata[c("backers")],aes(x=backers))+geom_histogram(breaks=seq(0,2000,100),col="black",fill='red')
+
+#min, max = (0.01,166361391); mean,median = (41522,5000)
+ggplot(data=cleandata[c("usd_goal_real")],aes(x=usd_goal_real))+geom_histogram(breaks=seq(0,200000,1000),col="black",fill='green')
+
+#histgram for country
+ggplot(data.frame(cleandata), aes(x=country)) + geom_bar()
+
+ggplot(data.frame(cleandata), aes(x=main_category)) + geom_bar(col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+#scatter plot
+# ggplot(cleandata,aes(x=usd_goal_real,y=backers)) + geom_point()
+
+#Not sure about this plot
+ggplot(data.frame(cleandata), aes(main_category,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+final_data <- subset(KS_valid_bi, TRUE, c(main_category, state, backers, country, usd_goal_real, days_on_deck))
+
+final_data$state <- factor(final_data$state)
+# Training and Test Data
+splitIndex <- createDataPartition(final_data[,"state"], p = .9, list = FALSE, times = 1)
+trainDF <- final_data[ splitIndex,]
+testDF  <- final_data[-splitIndex,]
+
+DT_model <- train(testDF, testDF$state, method="rf", metric="Accuracy", verbose=TRUE)

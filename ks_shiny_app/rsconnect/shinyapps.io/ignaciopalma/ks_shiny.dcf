@@ -1,0 +1,12 @@
+name: ks_shiny
+title: ks_shiny
+username:
+account: ignaciopalma
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 702732
+bundleId: 1867548
+url: https://ignaciopalma.shinyapps.io/ks_shiny/
+when: 1549832190.35766
+asMultiple: FALSE
+asStatic: FALSE

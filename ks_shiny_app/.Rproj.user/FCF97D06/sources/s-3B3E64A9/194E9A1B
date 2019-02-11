@@ -1,0 +1,24 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1549753276091.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "194E9A1B",
+    "lastKnownWriteTime" : 1549754078,
+    "last_content_update" : 1549754078186,
+    "path" : "~/Desktop/York/ks_markdown.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "15,3",
+        "last_setup_crc32" : "3B3E64A9bb338d19",
+        "scrollLine" : "2",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

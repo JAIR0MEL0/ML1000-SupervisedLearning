@@ -1,0 +1,54 @@
+---
+title: "Kickstarter Markdown"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem statement
+
+Our customers are new entrepreneurs recently graduated from universities around the world who would like to have one of his ideas being sponsored by Kickstarter.  Before commiting meeting and efforts with Kickstarters they would like to know how successful their ideas are sponsored by Kickstarters Investors.
+
+```{r cars}
+summary(cars)
+```
+
+## Columns:
+
+### ID 
+This is an identificator of the rows.  This is not a significant data and can be omitted.
+
+### Name
+Description of the project or product.  Potentially, as buzzwords could impact the decision.
+
+### Category
+Classification based on the characteristics or the target usage of the project.  Relevant for our analysis.
+
+### Main Category
+Group of Categories.  Relevant for our analysis.
+
+### Currency
+Currency of the country where the project is developed.  This is associated to the Goal and the budget pledged to complete the project.  Not Relevant for our analysis.
+
+### Dead Line
+This is the date when the goal money should be collected for the project to start.
+
+### Goal
+Minimum Amount of money targeted to be used for the development of the project.
+
+### Launched
+Date when the project is presented to kickstarters for funding. 
+
+### Pledged
+Money amount finally granted for the project in the currency of the country.
+
+### State
+Status of the project: Successful, Failed, Live, Suspended, Canceled.
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
