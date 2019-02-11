@@ -23,6 +23,8 @@ library(lattice)
 library(ggplot2)
 library(caret)
 library(plotly)
+#install.packages("randomForest")
+#library(randomForest)
 getwd();
 data <- read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
 ```
@@ -62,18 +64,37 @@ USD Pledged: This the amount granted in USD.  We will ignore this feature as the
 USD Pledged Real:  This the amount granted in USD.  We will ignore this feature as there is strong correlation with the USD Goal Real.
 USD Goal Real: This the goal amount in USD. We will use this feature for our initial analysis.
 
-##Cleaning Data
-We will clean any records with missing data in order to increase accuracy of the model
-Before Deleation
+## Cleaning Data
+#We will clean any records with missing data.
+#Before Deletion
 ```{r}
 nrow(data);
+sum(!complete.cases(data))
 data = data[complete.cases(data),]
 #After Deletion
 sum(!complete.cases(data))
 ```
+# Total number of levels in target variable state.
+```{r}
+levels(data$state)
+```
+Then... Let's delete records with state different than Succesfull or Failed.
 
-##Understanding the Data
-Let see what are the type of states are recorded in the data set to identify potential unrelevant.
+```{r}
+data <- data[ which(data$state=='successful' | data$state =='failed'), ]
+data$state <- factor(data$state, labels = c('successful', 'failed'))
+levels(data$state)
+```
+
+# What features made the final list
+Main Category groups, Backers, Country, Goal in USD, Campaign and state as predictive variables
+```{r}
+#eliminate features that are duplicates
+data <- data[c("main_category","backers","country","usd_goal_real","campaign","state")]
+```
+
+## Data exploration
+#To begin with look at the distributions of target variable (binary)
 
 ```{r state, echo=FALSE}
 pieState <- table(data$state)
@@ -81,130 +102,76 @@ pct <- round(pieState/sum(pieState)*100)
 lbls <- paste(names(pieState), "\n", pieState, sep="")
 lbls <- paste(lbls, pct) # add percents to labels 
 lbls <- paste(lbls,"%",sep="") # ad % to labels 
-pie(pieState,labels = lbls, col=rainbow(length(lbls)),
-    main="Pie Chart by State")
+pie(pieState,labels = lbls, col=rainbow(length(lbls)),main="Pie Chart by State")
 ```
-As we can see, there are only two relevant of our outcome variable: Successful and Failed
+
+# Look at the distributions of each predictor
+# Backers
+```{r state, echo=FALSE}
+ggplot(data=data[c("backers")],aes(x=backers))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,100,5),col="black",fill='blue') +
+ ggtitle('Normalized distribution of number of backers for all the projects')
+```
+
+# goal
+```{r state, echo=FALSE}
+ggplot(data=data[c("usd_goal_real")],aes(x=usd_goal_real))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,20000,1000),col="black",fill='blue') +
+ggtitle('Normalized distribution of the goal (USD) for all the projects')
+```
+
+# Campaign
+```{r state, echo=FALSE}
+ggplot(data=data[c("campaign")],aes(x=campaign))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,100,5),col="black",fill='blue')+
+ggtitle('Normalized distribution of number of campaign days for all the projects')
+```
+
+# category
+```{r state, echo=FALSE}
+ggplot(data.frame(data), aes(x=main_category)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+    ggtitle('Normalized distribution of number of projects for each category')
+```
+
+# country
+```{r state, echo=FALSE}
+ggplot(data.frame(data), aes(x=country)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+ggtitle('Normalized distribution of number of projects for each country')
+```
+
+# Currency
+```{r state, echo=FALSE}
+ggplot(data.frame(data), aes(x=currency)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+ggtitle('Normalized distribution of number of projects for each currency')
+```
+
+# But this does not  give an indication of predictive power of each feature. Look at the 
+# Fraction of failed and successful projects in each bin of each predictor.
+```{r state, echo=FALSE}
+ggplot(data.frame(data), aes(main_category,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+```{r state, echo=FALSE}
+ggplot(data.frame(data), aes(country,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+```{r state, echo=FALSE}
+ggplot() + geom_histogram(data=data, aes(x=backers,fill=state),position = "fill",breaks=seq(0,100,5))
+```
+
+```{r state, echo=FALSE}
+ggplot() + geom_histogram(data=data, aes(x=usd_goal_real,fill=state),position = "fill",breaks=seq(0,20000,1000))
+```
+
+```{r state, echo=FALSE}
+ggplot() + geom_histogram(data=data, aes(x=campaign,fill=state),position = "fill",breaks=seq(0,100,5))
+```
+
+# Feature selection
 ```{r}
-percentage <- prop.table(table(data$state)) * 100
-cbind(freq=table(data$state), percentage)
-
+rfImp <- randomForest(state ~ ., data = data, ntree = 200, importance = TRUE)
+importance(rfImp,type=2)
 ```
-Then... Let's clear records with state different than Succesfull or Failed.
+#Backers have highest importance. Since all features have nonzero importance retain all.
 
-```{r}
-data <- data[ which(data$state=='successful' 
-                         | data$state =='failed'), ]
-data$state <- factor(data$state, labels = c('successful', 'failed'))
-
-```
-
-Now, Let's analyze the relationship between backers and the successful projects per categories.  As we think, there is a strong relationship between the number of backers and the success of projects.  We should consider Backers as a strong predictor for succesfull projects.
-
-```{r echo=FALSE}}
-only_successful_data <- data[data['state'] == 'successful',]
-
-plot_backers_by_main_category <- only_successful_data %>%
-  plot_ly(
-    x = ~main_category,
-    y = ~backers,
-    split = ~main_category,
-    type = 'violin',
-    box = list(
-      visible = T
-    ),
-    meanline = list(
-      visible = T
-    )
-  ) %>% 
-  layout(
-    xaxis = list(
-      title = "Main Category"
-    ),
-    yaxis = list(
-      title = "Total Backers by Category",
-      zeroline = F
-    )
-  )
-
-plot_backers_by_main_category
-```
-
-##Campaing might impact the success rate
-Kickstarter allow only 60 days. They recommends that projects be set to 30 days or less. The idea is that if you project has not been funded within 30 days, it's not likely to be funded by their deadline either.  Let's review if there is a relationship between the campaign time and the success of a project.
-```{r echo=FALSE}
-length.pct <- data %>%
-  filter(state %in% c("successful", "failed"), campaign <= 61) %>%
-  group_by(campaign, state) %>%
-  summarise(count=n()) %>%
-  mutate(pct=count/sum(count))
-
-ggplot(length.pct[length.pct$state=="successful",], aes(campaign, pct)) + 
-  geom_point(colour="royalblue4", size=2.5) + ggtitle("Success vs. Campaign") + 
-  xlab("Project Campaign (Days)") + ylab("Success Rate (%)") + 
-  scale_x_continuous(breaks=c(0,10,20,30,40,50,60)) + geom_vline(xintercept=30, colour="red") + 
-  theme(plot.title=element_text(hjust=0.5), axis.title=element_text(size=12, face="bold"))
-
-```
-##Success ratio of projects per country
-Let's analyze whether the country has any impact on the success of the project
-
-First let's visualize the projects per country:
-```{r}
-
-projects_per_country <- data.frame(
-  country = levels(data$country), 
-  n_projects = as.numeric(summary(data$country))
-)
-
-# plot amount of projects per
-ggplot(projects_per_country, aes(x = country, y = n_projects)) + geom_bar(stat="identity", fill = "steelblue")
-
-
-```
-Most of the prokects are from US, but how is the ration of success per country
-```{r echo=FALSE}
-ggplot(bplot, aes(x = country, y = n_projects)) + geom_bar(stat="identity", fill = "steelblue")
-
-# small table contains country and
-# total amount of projects
-projects_per_country <- data.frame(
-  country = levels(data$country), 
-  total = as.numeric(summary(data$country))
-)
-
-# initialize empty vectors
-YES_vector <- c()
-NO_vector <- c()
-
-# iterate over country levels
-for(i in 1:length(levels(data$country))) {
-  country_letters <- levels(data$country)[i]
-  
-  # fill the empty YES and NO vectors with successful and failed projects per country
-  YES_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$state)[1]))
-  NO_vector[i] <- (as.numeric(summary(subset(data, data$country == country_letters)$state)[2]))
-}
-
-# add the new columns our small table
-projects_per_country$YES <- YES_vector
-projects_per_country$NO <- NO_vector
-
-# calculate ratio of success per country
-projects_per_country$success_ratio <- (projects_per_country$YES / projects_per_country$total) * 100
-
-# plot ratio of success per country
-ggplot(projects_per_country, aes(x = country, y = success_ratio)) + geom_bar(stat="identity", fill = "steelblue") + coord_cartesian(ylim = c(0, 100)) 
-```
-
-#What features made the final list
-Main Category groups, Backers, Country, Goal in USD, Campaign and state as predictive variables
-```{r}
-
-#eliminate features that are duplicates
-data <- data[c("main_category","backers","country","usd_goal_real","campaign","state")]
-```
-##Preparatoion of Training and Test data
+## Preparatoion of Training and Test data
 ```{r}
 # split data into training and testing chunks
 set.seed(1234)
@@ -234,9 +201,6 @@ Describe the final dataset that is used for classification (include a descriptio
 ```{r}
 
 
-#Feature selection
-rfImp <- randomForest(state ~ ., data = smallDF, ntree = 200, importance = TRUE)
-importance(rfImp,type=2)
 
 
 ```
@@ -261,18 +225,14 @@ Classification Tree / Recursive Partitioning```
 set.seed(7)
 fit.cart <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="rpart", metric=metric, trControl=trctl)
 ```
-Let's run SVM Support Vector Machine
-```{r}
-set.seed(7)
-fit.svm <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="svmRadial", metric=metric, trControl=trctl)
-```
-Final algorithm Random Forest
+
+Random Forest
 ```{r}
 set.seed(7)
 fit.rf <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="rf", metric=metric, trControl=trctl)
 ```
 #Evaluating Models
-Now it's time to evaluate the models:
+Now it's time to evaluate the models (training):
 #################################################
 ```{r}
 results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf))
@@ -283,8 +243,9 @@ dotplot(results)
 #summarize best model
 print(fit.rf)
 ```
+
 ##Running a Testing
-Estimate skill of Random Forest on trainDF dataset
+Estimate skill of Random Forest on testDF dataset
 ```{r}
 predictions <- predict(fit.rf, testDF)
 head(predictions)
