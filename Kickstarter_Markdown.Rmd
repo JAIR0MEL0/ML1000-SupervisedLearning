@@ -18,13 +18,12 @@ The Purpose of the data set is to identify what type of project are successfully
 Analysis:
 We starting by loading the data into a data variable.
 
-```{r libraries}
+```{r libraries, echo=FALSE}
 library(lattice)
 library(ggplot2)
 library(caret)
 library(plotly)
 library(ggplot2)
-library(randomForest)
 getwd();
 data <- read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
 ```
@@ -44,33 +43,52 @@ summary(data)
 #List of Features 
 Here is the definition and relevance for each feature:
 
-ID: Identificator of the rows.  This feature does not contains any relevant value and will be ingnore for this analysis.
-Name: Description of the project or product.  This is not a nominal feature we can use; we will ignore it for our analysis.
-Category: This is a classification associated to the type of project.  This is a relevant feature for analysis.
-Main Category: Group of Categories.  Also a relevant feature for our analysis.
-Currency: Currency of the country where the project will be developed.  There is a strong correlation between Currentcy and Country; so we will omit this feature during our analysis.
-Dead Line: This is the date when the goal money should be collected for the project to start.  We will consider this feature to create a new feature.
-Goal: Minimum Amount of money targeted to be used for the development of the project.  We will use this feature for our initial analysis.  However, instead of using the Goal we will use the USD Goal Real as it has already converted into common currency, USD.
-Launched: Date when the project is presented to kickstarters for funding. We identify this as a potential preductor in conjuction with the Deadline.
-We will create the new feature called Campaign, which is a differen between the Day the Campaign to collect the goal started and the deadline when the funding campaign is over:
+#ID
+Identificator of the rows.  This feature does not contains any relevant value and will be ingnore for this analysis.
+#Name
+Description of the project or product.  This is not a nominal feature we can use; we will ignore it for our analysis.
+#Category
+This is a classification associated to the type of project.  This is a relevant feature for analysis.
+#Main Category
+Group of Categories.  Also a relevant feature for our analysis.
+#Currency
+Currency of the country where the project will be developed.  There is a strong correlation between Currentcy and Country; so we will omit this feature during our analysis.
+#Dead Line
+This is the date when the goal money should be collected for the project to start.  We will consider this feature to create a new feature.
+#Goal
+Minimum Amount of money targeted to be used for the development of the project.  We will use this feature for our initial analysis.  However, instead of using the Goal we will use the USD Goal Real as it has already converted into common currency, USD.
+#Launched
+Date when the project is presented to kickstarters for funding. We identify this as a potential preductor in conjuction with the Deadline.
+We will create the new feature called Campaign, which is a differen between the Day the Campaign to collect the goal started and the deadline when the funding #campaign:
+The numbers of days between the launch and the deadline which is when the campaign is over.
 ```{r}
 data[["campaign"]] <- as.integer(difftime(data$deadline ,data$launched , units = c("days")))
 ```
-Pledged: Money amount finally granted for the project in the currency of the country.  Pledged has a strong correlation with Goal for those succesful project; failed will mean, a project has not achieve the goal.  In this case, we will omit Pledged and use the goal.
-State: Status of the project is the label of the data set, contains the values to determine whether the project is successful or not.  
-Backers: Number of sponsors.  This a relevant information for our initial analysis as we can determine whether there is a relationship between the number of backers for successful projects.
-Country: Place where the project is being developed.  We will use this feature during our initial analysis as we would like to determine if there is a relationship with the country for all the succesful projects.
-USD Pledged: This the amount granted in USD.  We will ignore this feature as there is strong correlation with the USD Goal Real.
-USD Pledged Real:  This the amount granted in USD.  We will ignore this feature as there is strong correlation with the USD Goal Real.
-USD Goal Real: This the goal amount in USD. We will use this feature for our initial analysis.
+#Pledged
+Money amount finally granted for the project in the currency of the country.  Pledged has a strong correlation with Goal for those succesful project; failed will mean, a project has not achieve the goal.  In this case, we will omit Pledged and use the goal.
+#State
+Status of the project is the label of the data set, contains the values to determine whether the project is successful or not.  
+#Backers
+Number of sponsors.  This a relevant information for our initial analysis as we can determine whether there is a relationship between the number of backers for successful projects.
+#Country
+Place where the project is being developed.  We will use this feature during our initial analysis as we would like to determine if there is a relationship with the country for all the succesful projects.
+#USD Pledged
+This the amount granted in USD.  We will ignore this feature as there is strong correlation with the USD Goal Real.
+#USD Pledged Real
+This the amount granted in USD.  We will ignore this feature as there is strong correlation with the USD Goal Real.
+#USD Goal Real
+This the goal amount in USD. We will use this feature for our initial analysis.
 
 ##Cleaning Data
 We will clean any records with missing data in order to increase accuracy of the model
+
 Before Deleation
 ```{r}
 nrow(data);
 data = data[complete.cases(data),]
-#After Deletion
+```
+After Deletion
+```{r}
 sum(!complete.cases(data))
 ```
 
@@ -78,7 +96,7 @@ sum(!complete.cases(data))
 Let's see what are the type of states are recorded in the data set to identify potential unrelevant.
 
 We will start inspecting the state column distribuition that might will be our key to understand this dataset
-```{r}
+```{r echo=FALSE}
 pieState <- table(data$state)
 pct <- round(pieState/sum(pieState)*100)
 lbls <- paste(names(pieState), "\n", pieState, sep="")
@@ -105,6 +123,13 @@ data$state <- factor(data$state, labels = c('successful', 'failed'))
 Now, Let's analyze the relationship between backers and the successful projects per categories.  As we think, there is a strong relationship between the number of backers and the success of projects.  We should consider Backers as a strong predictor for succesfull projects.
 
 
+{r echo=FALSE}
+ggplot(data.frame(data), aes(country,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+```{r echo=FALSE}
+ggplot() + geom_histogram(data=data, aes(x=backers,fill=state),position = "fill",breaks=seq(0,100,5))
+```
 # Now let;s look at the distributions of each predictor
 
 # Backers
@@ -114,13 +139,13 @@ ggplot(data=data[c("backers")],aes(x=backers))+geom_histogram(aes(y=..count../su
 ```
 
 # goal
-```{r, echo=FALSE}
+```{r echo=FALSE}
 ggplot(data=data[c("usd_goal_real")],aes(x=usd_goal_real))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,20000,1000),col="black",fill='blue') +
 ggtitle('Normalized distribution of the goal (USD) for all the projects')
 ```
 
 # Campaign
-```{r, echo=FALSE}
+```{r echo=FALSE}
 ggplot(data=data[c("campaign")],aes(x=campaign))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,100,5),col="black",fill='blue')+
 ggtitle('Normalized distribution of number of campaign days for all the projects')
 ```
@@ -132,7 +157,7 @@ ggplot(data.frame(data), aes(x=main_category)) + geom_bar(aes(y=..count../sum(..
 ```
 
 # country
-```{r, echo=FALSE}
+```{r echo=FALSE}
 ggplot(data.frame(data), aes(x=country)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
 ggtitle('Normalized distribution of number of projects for each country')
 ```
@@ -145,23 +170,17 @@ ggtitle('Normalized distribution of number of projects for each currency')
 
 # But this does not  give an indication of predictive power of each feature. Look at the 
 # Fraction of failed and successful projects in each bin of each predictor.
-```{r, echo=FALSE}
+```{r echo=FALSE}
 ggplot(data.frame(data), aes(main_category,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 ```
 
-```{r, echo=FALSE}
-ggplot(data.frame(data), aes(country,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 ```
 
-```{r, echo=FALSE}
-ggplot() + geom_histogram(data=data, aes(x=backers,fill=state),position = "fill",breaks=seq(0,100,5))
-```
-
-```{r, echo=FALSE}
+```{r echo=FALSE}
 ggplot() + geom_histogram(data=data, aes(x=usd_goal_real,fill=state),position = "fill",breaks=seq(0,20000,1000))
 ```
 
-```{r, echo=FALSE}
+```{r echo=FALSE}
 ggplot() + geom_histogram(data=data, aes(x=campaign,fill=state),position = "fill",breaks=seq(0,100,5))
 ```
 # Feature selection
@@ -174,6 +193,9 @@ Eliminate features that are duplicates
 data <- data[c("main_category","backers","country","usd_goal_real","campaign","state")]
 ```
 ## Preparatoion of Training and Test data
+
+We will split the data between training and testing.
+
 ```{r}
 # split data into training and testing chunks
 set.seed(1234)
@@ -268,11 +290,11 @@ summary(results)
 
 ## Visualize the accuracy of the models
 
-```{r}
+```{r echo=FALSE}
 dotplot(results)
 ```
 #summarize best model
-```{r}
+```{r echo=FALSE}
 print(fit.rf)
 ```
 ##Running a Testing
