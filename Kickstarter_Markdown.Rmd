@@ -18,13 +18,13 @@ The Purpose of the data set is to identify what type of project are successfully
 Analysis:
 We starting by loading the data into a data variable.
 
-```{r}
+```{r libraries}
 library(lattice)
 library(ggplot2)
 library(caret)
 library(plotly)
-#install.packages("randomForest")
-#library(randomForest)
+library(ggplot2)
+library(randomForest)
 getwd();
 data <- read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
 ```
@@ -36,7 +36,7 @@ ncol(data);
 nrow(data);
 ```
 quickly preview data structure with HEAD(), STR(), and SUMMARY()
-```{r State}
+```{r}
 head(data,10)
 str(data)
 summary(data)
@@ -64,113 +64,115 @@ USD Pledged: This the amount granted in USD.  We will ignore this feature as the
 USD Pledged Real:  This the amount granted in USD.  We will ignore this feature as there is strong correlation with the USD Goal Real.
 USD Goal Real: This the goal amount in USD. We will use this feature for our initial analysis.
 
-## Cleaning Data
-#We will clean any records with missing data.
-#Before Deletion
+##Cleaning Data
+We will clean any records with missing data in order to increase accuracy of the model
+Before Deleation
 ```{r}
 nrow(data);
-sum(!complete.cases(data))
 data = data[complete.cases(data),]
 #After Deletion
 sum(!complete.cases(data))
 ```
-# Total number of levels in target variable state.
+
+##Understanding the Data
+Let's see what are the type of states are recorded in the data set to identify potential unrelevant.
+
+We will start inspecting the state column distribuition that might will be our key to understand this dataset
 ```{r}
-levels(data$state)
-```
-Then... Let's delete records with state different than Succesfull or Failed.
-
-```{r}
-data <- data[ which(data$state=='successful' | data$state =='failed'), ]
-data$state <- factor(data$state, labels = c('successful', 'failed'))
-levels(data$state)
-```
-
-# What features made the final list
-Main Category groups, Backers, Country, Goal in USD, Campaign and state as predictive variables
-```{r}
-#eliminate features that are duplicates
-data <- data[c("main_category","backers","country","usd_goal_real","campaign","state")]
-```
-
-## Data exploration
-#To begin with look at the distributions of target variable (binary)
-
-```{r state, echo=FALSE}
 pieState <- table(data$state)
 pct <- round(pieState/sum(pieState)*100)
 lbls <- paste(names(pieState), "\n", pieState, sep="")
 lbls <- paste(lbls, pct) # add percents to labels 
 lbls <- paste(lbls,"%",sep="") # ad % to labels 
-pie(pieState,labels = lbls, col=rainbow(length(lbls)),main="Pie Chart by State")
+pie(pieState,labels = lbls, col=rainbow(length(lbls)),
+    main="Pie Chart by State")
+```
+As we can see, there are only two relevant of our outcome variable: Successful and Failed
+```{r}
+percentage <- prop.table(table(data$state)) * 100
+cbind(freq=table(data$state), percentage)
+
+```
+Then... Let's clear records with state different than Succesfull or Failed.
+
+```{r}
+data <- data[ which(data$state=='successful' 
+                         | data$state =='failed'), ]
+data$state <- factor(data$state, labels = c('successful', 'failed'))
+
 ```
 
-# Look at the distributions of each predictor
+Now, Let's analyze the relationship between backers and the successful projects per categories.  As we think, there is a strong relationship between the number of backers and the success of projects.  We should consider Backers as a strong predictor for succesfull projects.
+
+
+# Now let;s look at the distributions of each predictor
+
 # Backers
-```{r state, echo=FALSE}
+```{r echo=FALSE}
 ggplot(data=data[c("backers")],aes(x=backers))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,100,5),col="black",fill='blue') +
  ggtitle('Normalized distribution of number of backers for all the projects')
 ```
 
 # goal
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot(data=data[c("usd_goal_real")],aes(x=usd_goal_real))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,20000,1000),col="black",fill='blue') +
 ggtitle('Normalized distribution of the goal (USD) for all the projects')
 ```
 
 # Campaign
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot(data=data[c("campaign")],aes(x=campaign))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,100,5),col="black",fill='blue')+
 ggtitle('Normalized distribution of number of campaign days for all the projects')
 ```
 
 # category
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot(data.frame(data), aes(x=main_category)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
     ggtitle('Normalized distribution of number of projects for each category')
 ```
 
 # country
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot(data.frame(data), aes(x=country)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
 ggtitle('Normalized distribution of number of projects for each country')
 ```
 
 # Currency
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot(data.frame(data), aes(x=currency)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
 ggtitle('Normalized distribution of number of projects for each currency')
 ```
 
 # But this does not  give an indication of predictive power of each feature. Look at the 
 # Fraction of failed and successful projects in each bin of each predictor.
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot(data.frame(data), aes(main_category,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 ```
 
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot(data.frame(data), aes(country,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 ```
 
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot() + geom_histogram(data=data, aes(x=backers,fill=state),position = "fill",breaks=seq(0,100,5))
 ```
 
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot() + geom_histogram(data=data, aes(x=usd_goal_real,fill=state),position = "fill",breaks=seq(0,20000,1000))
 ```
 
-```{r state, echo=FALSE}
+```{r, echo=FALSE}
 ggplot() + geom_histogram(data=data, aes(x=campaign,fill=state),position = "fill",breaks=seq(0,100,5))
 ```
-
 # Feature selection
-```{r}
-rfImp <- randomForest(state ~ ., data = data, ntree = 200, importance = TRUE)
-importance(rfImp,type=2)
-```
-#Backers have highest importance. Since all features have nonzero importance retain all.
 
+## What features made the final list
+Main Category groups, Backers, Country, Goal in USD, Campaign and state as predictive variables
+
+Eliminate features that are duplicates
+```{r}
+data <- data[c("main_category","backers","country","usd_goal_real","campaign","state")]
+```
 ## Preparatoion of Training and Test data
 ```{r}
 # split data into training and testing chunks
@@ -194,16 +196,6 @@ What are the types of attribues:
 sapply(trainDF, class)
 ```
 
-
-How would you measure the effectiveness of a good prediction algorithm or clustering algorithm?
-Describe the final dataset that is used for classification (include a description of any newly formed variables you created).
-
-```{r}
-
-
-
-
-```
 ##Evaluating the Models
 
 Let's review the models.  General Linear Model Start with Lineal regression model
@@ -211,49 +203,89 @@ Let's review the models.  General Linear Model Start with Lineal regression mode
 GLM is a supervised algorithm with a classic statistical technique (Supports thousands of input variables, text and transactional data) used for:  Classification and/or Regression
 
 # a) Linear Discriminant Analysis
-
 ```{r}
 trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
 metric <- "Accuracy"
 
-set.seed(7)
-fit.lda <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="lda", metric=metric, trControl=trctl)
+set.seed(152)
+fit.lda <- train(state ~ main_category + usd_goal_real + backers + campaign, data=trainDF, method="lda", metric=metric, trControl=trctl)
 ```
-Nonlinear algorithms
-Classification Tree / Recursive Partitioning```
+# b) Nonlinear algorithms Classification Tree / Recursive Partitioning
 ```{r}
-set.seed(7)
-fit.cart <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="rpart", metric=metric, trControl=trctl)
+set.seed(152)
+fit.cart <- train(state ~ main_category + usd_goal_real + backers + campaign, data=trainDF, method="rpart", metric=metric, trControl=trctl)
+```
+# c) Final algorithm Random Forest
+```{r}
+set.seed(152)
+fit.rf <- train(state ~ main_category + usd_goal_real + backers + campaign, data=trainDF, method="rf", metric=metric, trControl=trctl)
 ```
 
-Random Forest
+## Evalutate model
+#################################################
+summarize accuracy of models (Training)
 ```{r}
-set.seed(7)
-fit.rf <- train(state ~ main_category + goal + backers + campaign, data=trainDF, method="rf", metric=metric, trControl=trctl)
+results <- resamples(list(lda=fit.lda, cart=fit.cart, rf=fit.rf))
+summary(results)
+```
+## Visualize the accuracy of the models
+```{r}
+dotplot(results)
+```
+##Let's make a prediction (accuracy of testing dataset)
+
+#a) Linear Discriminant Analysis and Confusion Matrix
+```{r}
+predictions <- predict(fit.lda, testDF)
+head(predictions)
+confusionMatrix(predictions,testDF$state)
+```
+#b) Classification Tree / Recursive Partitioning and Confusion Matrix
+```{r}
+predictions <- predict(fit.cart, testDF)
+head(predictions)
+confusionMatrix(predictions,testDF$state)
+```
+#c) Final algorithm Random Forest and confusion matrix
+```{r}
+predictions <- predict(fit.rf, testDF)
+head(predictions)
+confusionMatrix(predictions,testDF$state)
+```
+
+## Deployment
+Predicting outcome of an unseen data point
+```{r}
+xnew = data[211701,c("main_category","backers","country","usd_goal_real","campaign","currency")]
+predict(fit.rf,xnew)
 ```
 #Evaluating Models
-Now it's time to evaluate the models (training):
-#################################################
+Now it's time to evaluate the models:
 ```{r}
 results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf))
 summary(results)
-
-#Visualize the accuracy of the models
-dotplot(results)
-#summarize best model
-print(fit.rf)
 ```
 
+## Visualize the accuracy of the models
+
+```{r}
+dotplot(results)
+```
+#summarize best model
+```{r}
+print(fit.rf)
+```
 ##Running a Testing
-Estimate skill of Random Forest on testDF dataset
+Estimate skill of Random Forest on trainDF dataset
 ```{r}
 predictions <- predict(fit.rf, testDF)
 head(predictions)
 confusionMatrix(predictions,testDF$successful)
-
-
 ```
 
-Conclusion:
+##Conclusion:
+Using the five predictors: main_category, backers, country, usd_goal_real, campaign and the label state we were able to create a model that predicts with 9.1% of accuracy whether a project will be successful or not.
+Main Category and the Goal amount have a higher impact in the success of a Project.
+
 
 
