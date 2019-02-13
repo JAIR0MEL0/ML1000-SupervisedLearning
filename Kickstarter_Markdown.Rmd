@@ -1,6 +1,9 @@
 ---
 title: "Kickstarter - Markdown"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 ## Problem statement
@@ -138,11 +141,12 @@ ggplot(data=data[c("backers")],aes(x=backers))+geom_histogram(aes(y=..count../su
  ggtitle('Normalized distribution of number of backers for all the projects')
 ```
 
-# goal
+# usd goal real
 ```{r echo=FALSE}
 ggplot(data=data[c("usd_goal_real")],aes(x=usd_goal_real))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,20000,1000),col="black",fill='blue') +
 ggtitle('Normalized distribution of the goal (USD) for all the projects')
 ```
+As we see a project has more probability to failed with a high goal
 
 # Campaign
 ```{r echo=FALSE}
@@ -167,6 +171,9 @@ ggtitle('Normalized distribution of number of projects for each country')
 ggplot(data.frame(data), aes(x=currency)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
 ggtitle('Normalized distribution of number of projects for each currency')
 ```
+
+Currency has a strong correlation with Country.  We won't need to use currency as country is more descriptive for our model.
+
 
 # But this does not  give an indication of predictive power of each feature. Look at the 
 # Fraction of failed and successful projects in each bin of each predictor.
@@ -278,7 +285,7 @@ confusionMatrix(predictions,testDF$state)
 ## Deployment
 Predicting outcome of an unseen data point
 ```{r}
-xnew = data[211701,c("main_category","backers","country","usd_goal_real","campaign","currency")]
+xnew = data[211701,c('main_category','backers','country','usd_goal_real','campaign')]
 predict(fit.rf,xnew)
 ```
 #Evaluating Models
