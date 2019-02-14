@@ -291,7 +291,10 @@ predict(fit.rf,xnew)
 #Evaluating Models
 Now it's time to evaluate the models:
 ```{r}
-results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf))
+results <- resamples(list(lda=fit.lda, cart=fit.cart, rf=fit.rf))
+summary(results)
+
+results <- resamples(list(lda=fit.lda, cart=fit.cart, rf=fit.rf))
 summary(results)
 ```
 
@@ -309,7 +312,7 @@ Estimate skill of Random Forest on trainDF dataset
 ```{r}
 predictions <- predict(fit.rf, testDF)
 head(predictions)
-confusionMatrix(predictions,testDF$successful)
+confusionMatrix(predictions,testDF$state)
 ```
 
 ##Conclusion:
