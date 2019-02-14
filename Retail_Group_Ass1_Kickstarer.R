@@ -298,7 +298,7 @@ xnew = data[211701,c("main_category","backers","country","usd_goal_real","campai
 predict(fit.rf,xnew)
 #Evaluating Models
 #Now it's time to evaluate the models:
-results <- resamples(list(lda=fit.lda, cart=fit.cart, knn=fit.knn, svm=fit.svm, rf=fit.rf))
+results <- resamples(list(lda=fit.lda, cart=fit.cart, rf=fit.rf))
 summary(results)
 
 ## Visualize the accuracy of the models
