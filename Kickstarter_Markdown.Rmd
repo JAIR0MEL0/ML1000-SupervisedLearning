@@ -1,9 +1,9 @@
 ---
 title: "Kickstarter - Markdown"
 output:
-  html_document: default
-  pdf_document: default
   word_document: default
+  pdf_document: default
+  html_document: default
 ---
 
 ## Problem statement
@@ -27,6 +27,8 @@ library(ggplot2)
 library(caret)
 library(plotly)
 library(ggplot2)
+install.packages("randomForest")
+library(randomForest)
 getwd();
 data <- read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
 ```
@@ -55,7 +57,7 @@ This is a classification associated to the type of project.  This is a relevant 
 #Main Category
 Group of Categories.  Also a relevant feature for our analysis.
 #Currency
-Currency of the country where the project will be developed.  There is a strong correlation between Currentcy and Country; so we will omit this feature during our analysis.
+Currency of the country where the project will be developed.  Currentcy and Country are giving the same information; so we will omit this feature during our analysis.
 #Dead Line
 This is the date when the goal money should be collected for the project to start.  We will consider this feature to create a new feature.
 #Goal
@@ -85,13 +87,15 @@ This the goal amount in USD. We will use this feature for our initial analysis.
 ##Cleaning Data
 We will clean any records with missing data in order to increase accuracy of the model
 
-Before Deleation
+Before Deletion
 ```{r}
 nrow(data);
+sum(!complete.cases(data))
 data = data[complete.cases(data),]
 ```
 After Deletion
 ```{r}
+nrow(data);
 sum(!complete.cases(data))
 ```
 
@@ -122,17 +126,6 @@ data <- data[ which(data$state=='successful'
 data$state <- factor(data$state, labels = c('successful', 'failed'))
 
 ```
-
-Now, Let's analyze the relationship between backers and the successful projects per categories.  As we think, there is a strong relationship between the number of backers and the success of projects.  We should consider Backers as a strong predictor for succesfull projects.
-
-
-{r echo=FALSE}
-ggplot(data.frame(data), aes(country,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-```
-
-```{r echo=FALSE}
-ggplot() + geom_histogram(data=data, aes(x=backers,fill=state),position = "fill",breaks=seq(0,100,5))
-```
 # Now let;s look at the distributions of each predictor
 
 # Backers
@@ -142,6 +135,7 @@ ggplot(data=data[c("backers")],aes(x=backers))+geom_histogram(aes(y=..count../su
 ```
 
 # usd goal real
+
 ```{r echo=FALSE}
 ggplot(data=data[c("usd_goal_real")],aes(x=usd_goal_real))+geom_histogram(aes(y=..count../sum(..count..)),breaks=seq(0,20000,1000),col="black",fill='blue') +
 ggtitle('Normalized distribution of the goal (USD) for all the projects')
@@ -166,44 +160,51 @@ ggplot(data.frame(data), aes(x=country)) + geom_bar(aes(y=..count../sum(..count.
 ggtitle('Normalized distribution of number of projects for each country')
 ```
 
-# Currency
-```{r, echo=FALSE}
-ggplot(data.frame(data), aes(x=currency)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
-ggtitle('Normalized distribution of number of projects for each currency')
-```
-
-Currency has a strong correlation with Country.  We won't need to use currency as country is more descriptive for our model.
-
-
 # But this does not  give an indication of predictive power of each feature. Look at the 
 # Fraction of failed and successful projects in each bin of each predictor.
+
 ```{r echo=FALSE}
-ggplot(data.frame(data), aes(main_category,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+ggplot() + geom_histogram(data=data, aes(x=backers,fill=state),position = "fill",breaks=seq(0,100,5))
 ```
-
-```
-
 ```{r echo=FALSE}
 ggplot() + geom_histogram(data=data, aes(x=usd_goal_real,fill=state),position = "fill",breaks=seq(0,20000,1000))
 ```
 
 ```{r echo=FALSE}
-ggplot() + geom_histogram(data=data, aes(x=campaign,fill=state),position = "fill",breaks=seq(0,100,5))
+ggplot() + geom_histogram(data=data, aes(x=campaign,fill=state),position = "fill",breaks=seq(0,92,5))
 ```
-# Feature selection
+
+
+```{r echo=FALSE}
+ggplot(data.frame(data), aes(main_category,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
+
+
+Now, Let's analyze the relationship between backers and the successful projects per categories.  As we think, there is a strong relationship between the number of backers and the success of projects.  We should consider Backers as a strong predictor for succesfull projects.
+```{r echo=FALSE}
+ggplot(data.frame(data), aes(country,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+```
 
 ## What features made the final list
-Main Category groups, Backers, Country, Goal in USD, Campaign and state as predictive variables
+Main Category groups, Backers, Country, Goal in USD, Campaign are the predictive variables, while State is the target variable.
 
 Eliminate features that are duplicates
 ```{r}
 data <- data[c("main_category","backers","country","usd_goal_real","campaign","state")]
 ```
+
+# Feature selection
+```{r}
+rfImp <- randomForest(state ~ ., data = data, ntree = 100, importance = TRUE)
+importance(rfImp,type=2)
+```
+
 ## Preparatoion of Training and Test data
 
 We will split the data between training and testing.
 
 ```{r}
+
 # split data into training and testing chunks
 set.seed(1234)
 
@@ -231,23 +232,23 @@ Let's review the models.  General Linear Model Start with Lineal regression mode
 
 GLM is a supervised algorithm with a classic statistical technique (Supports thousands of input variables, text and transactional data) used for:  Classification and/or Regression
 
-# a) Linear Discriminant Analysis
+# a) LDA: Linear Discriminant Analysis
 ```{r}
 trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
 metric <- "Accuracy"
 
 set.seed(152)
-fit.lda <- train(state ~ main_category + usd_goal_real + backers + campaign, data=trainDF, method="lda", metric=metric, trControl=trctl)
+fit.lda <- train(state ~ main_category + usd_goal_real + backers + campaign + country, data=trainDF, method="lda", metric=metric, trControl=trctl)
 ```
 # b) Nonlinear algorithms Classification Tree / Recursive Partitioning
 ```{r}
 set.seed(152)
-fit.cart <- train(state ~ main_category + usd_goal_real + backers + campaign, data=trainDF, method="rpart", metric=metric, trControl=trctl)
+fit.cart <- train(state ~ main_category + usd_goal_real + backers + campaign + country, data=trainDF, method="rpart", metric=metric, trControl=trctl)
 ```
 # c) Final algorithm Random Forest
 ```{r}
 set.seed(152)
-fit.rf <- train(state ~ main_category + usd_goal_real + backers + campaign, data=trainDF, method="rf", metric=metric, trControl=trctl)
+fit.rf <- train(state ~ main_category + usd_goal_real + backers + campaign + country, data=trainDF, method="rf", metric=metric, trControl=trctl)
 ```
 
 ## Evalutate model
