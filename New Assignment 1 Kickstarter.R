@@ -4,8 +4,6 @@
 library(lattice)
 library(ggplot2)
 library(caret)
-#library(plotly)
-install.packages("randomForest")
 library(randomForest)
 library(dplyr)
 
@@ -14,6 +12,10 @@ library(dplyr)
 
 getwd();
 data=read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
+#data <- data[sample(nrow(data), size = 50000, replace = FALSE),]
+data <- data[1:50000,]
+
+head(data)
 
 #check # of rows
 ncol(data);
@@ -48,9 +50,6 @@ data <- select(data,-goal)
 
 str(data)
 
-dataVariable <- data[10000,]
-
-
 #----------------Data preparation/cleaning------------------
 
 #################################################
@@ -68,7 +67,6 @@ summary(testDF)
 # a) Linear Discriminant Analysis
 trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
 metric <- "Accuracy"
-
 
 set.seed(152)
 fit.lda <- train(state ~ main_category + usd_goal_real + backers + campaign + country, data=trainDF, method="lda", metric=metric, trControl=trctl)
@@ -109,7 +107,7 @@ confusionMatrix(predictions,testDF$state)
 
 ## Deployment
 #Predicting outcome of an unseen data point
-xnew = data[211701,c("main_category","backers","country","usd_goal_real","campaign","currency")]
+xnew = data[2117,c("main_category","backers","country","usd_goal_real","campaign","currency")]
 predict(fit.rf,xnew)
 #Evaluating Models
 #Now it's time to evaluate the models:
