@@ -1,9 +1,9 @@
 ---
 title: "Kickstarter - Markdown"
 output:
-  word_document: default
-  pdf_document: default
   html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 ## Problem statement
@@ -27,8 +27,8 @@ library(ggplot2)
 library(caret)
 library(plotly)
 library(ggplot2)
-install.packages("randomForest")
 library(randomForest)
+library(dplyr)
 getwd();
 data <- read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
 ```
@@ -123,8 +123,8 @@ Then... Let's clear records with state different than Succesfull or Failed.
 ```{r}
 data <- data[ which(data$state=='successful' 
                          | data$state =='failed'), ]
-data$state <- factor(data$state, labels = c('successful', 'failed'))
-
+data$state <- factor(data$state)
+data$country <- factor(data$country)
 ```
 # Now let;s look at the distributions of each predictor
 
@@ -190,7 +190,15 @@ Main Category groups, Backers, Country, Goal in USD, Campaign are the predictive
 
 Eliminate features that are duplicates
 ```{r}
-data <- data[c("main_category","backers","country","usd_goal_real","campaign","state")]
+data <- select(data,-name)
+data <- select(data,-ID)
+data <- select(data,-category)
+data <- select(data,-deadline)
+data <- select(data,-launched)
+data <- select(data,-usd.pledged)
+data <- select(data,-usd_pledged_real)
+data <- select(data,-pledged)
+data <- select(data,-goal)
 ```
 
 # Feature selection
@@ -237,8 +245,10 @@ GLM is a supervised algorithm with a classic statistical technique (Supports tho
 trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
 metric <- "Accuracy"
 
+#Removing Country as there is Country has low predictibility and it's values are in collinearity with State.
 set.seed(152)
 fit.lda <- train(state ~ main_category + usd_goal_real + backers + campaign + country, data=trainDF, method="lda", metric=metric, trControl=trctl)
+
 ```
 # b) Nonlinear algorithms Classification Tree / Recursive Partitioning
 ```{r}
