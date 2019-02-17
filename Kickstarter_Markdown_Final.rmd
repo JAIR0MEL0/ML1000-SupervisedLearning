@@ -1,0 +1,428 @@
+---
+title: "Kickstarter_Markdown_Final"
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+## Problem statement
+Our customers are new entrepreneurs recently graduated from universities around the world who would like to have one of his/her ideas being sponsored by Kickstarter.  Before commiting meeting and efforts with Kickstarters they would like to know how successful their ideas are sponsored by Kickstarters Investors. This model predicts the likely outcome of the projects given inputs like number of backers, the amount of money needed by the project (goal)
+etc.
+
+
+Gathering the data:
+The data is downloaded from the Kaggle site where lots of dataset is available for analysis.  We identified Kickstarter as a great opportunity to learn and use Supervise Learning algorithms.
+<https://www.kaggle.com/kemical/kickstarter-projects/home>
+ 
+
+#Data Preparation
+The Purpose of the data set is to identify what type of project are successfully sponsored.  The data collected from Kaggle has two different year of Kickstarters: 2016 and 2018.  We choose the most recent data as a way to create better predictions.
+
+Analysis:
+We starting by loading the data into a data variable.
+
+
+###############################################################################################
+####################    Kickstarter lookalike and/or propensity model    #####################
+###############################################################################################
+```{r libraries, echo=FALSE}
+library(lattice)
+library(ggplot2)
+library(caret)
+library(randomForest)
+library(dplyr)
+```
+
+```{r}
+getwd();
+#CHANGE THE PATH appropriately
+data=read.csv("~/desktop/ML/YORK/Assigment1/kickstarter-projects/ks-projects-201801.csv", header = TRUE, dec = ".")
+```
+
+
+#Selecting a subset of 50000 records to reduce computing time
+```{r}
+data <- data[1:50000,]
+
+```
+
+
+#Exploration and understanding of the data including cleaning/preparation.
+
+#Check dimesionality of dataset (50000,15).
+```{r}
+#check # of rows
+ncol(data)
+nrow(data)
+```
+
+#What features  are present in the dataset ? How many are categorical and numerical ? How many levels for each feature ? What do the features mean ?
+```{r}
+str(data)
+```
+
+#List of Features 
+#Here is the definition and relevance for each feature:
+#ID
+#Identificator of the rows.  This feature does not contains any relevant value and will be removed.
+#Name
+#Description of the project or product.  Name is unique for each project and will be removed.
+#Category
+#This is a classification associated with the type of project.  This might be relevant but too fine grained compared to main_category and will be removed.
+#Main Category
+# Gives a broad classification of the type of industry to which the project belongs.
+#Currency
+#Currency of the country where the project will be developed.  Currency and Country might be giving similar information.
+#Dead Line
+#This is the date when the goal money should be collected for the project to start.  We will consider this feature to create a new feature.
+#Goal
+#Minimum Amount of money targeted to be used for the development of the project. USD_Goal_Real gives the same information as goal.
+#Launched
+#Date when the project is presented to kickstarters for funding. We identify this as a potential predictor in conjuction with the Deadline.
+#We will create the new feature called Campaign, which is a differen between the Day the Campaign to collect the goal started and the deadline when the #funding campaign:
+#Pledged
+#Money amount finally granted for the project in the currency of the country.  If pledged amount is more than goal the project is successful. Does not
+#have predicive power and hence will be removed.
+#State  (This is the TARGET variable)
+#Status of the project is the label of the data set, contains the values to determine whether the project is successful or not.  
+#Backers
+#Number of sponsors.  This is potentially a feature with high predictive power.
+#Country
+#Place where the project is being developed.  This might provide the same information as currency.
+#USD Pledged
+#This the amount granted in USD.  Same as pledged.
+#USD Pledged Real
+#Same as USD pledged.
+#USD Goal Real
+#This the goal amount in USD. We will use this feature for our initial analysis. This is same as goal.
+
+
+#First step : Detect missing values and remove rows with missing values
+```{r}
+sum(!complete.cases(data))
+#Delete missing values (471)
+data = data[complete.cases(data),]
+#Make sure missing data points are absent (better be zero)
+sum(!complete.cases(data))
+```
+
+
+#Delete irrelevant features
+```{r}
+#name and ID are obviously not useful
+data <- select(data,-name)
+data <- select(data,-ID)
+#pledged amount does not have any predictive power since all successful projects have pledged amount more than goal.
+data <- select(data,-usd.pledged)
+data <- select(data,-usd_pledged_real)
+data <- select(data,-pledged)
+#goal gives same information as USD_goal_real
+data <- select(data,-goal)
+#Too fine grained and hence could lead to overfitting. Main_category is better.
+data <- select(data,-category)
+str(data)
+```
+
+
+#Go into details of target variable (state).
+```{r}
+#Target variable is state. How many levels does it have ?
+levels(data$state)
+summary(data$state)
+percentage <- prop.table(table(data$state)) * 100
+cbind(freq=table(data$state), percentage)
+```
+
+```{r}
+#Undefined has 0 instances. The meaning of (Canceled, failed, live, suspended) is ambiguous.
+#These account for about 11% of the rows. Hence delete these levels. Retain only two levels of $state
+data <- data[ which(data$state=='successful' | data$state =='failed'), ]
+#Remove the classes (Canceled, failed, live, suspended) which now have zero instances
+data$state <- factor(data$state)
+summary(data$state)
+```
+
+#visualize fraction of successful/failed projects.
+```{r}
+pieState <- table(data$state)
+pct <- round(pieState/sum(pieState)*100)
+lbls <- paste(names(pieState), "\n", pieState, sep="")
+lbls <- paste(lbls, pct) # add percents to labels 
+lbls <- paste(lbls,"%",sep="") # ad % to labels 
+pie(pieState,labels = lbls, col=rainbow(length(lbls)),main="Pie Chart by State")
+```
+#about 41% of all projects are successful.
+
+```{r}
+summary(data$country)
+#There is one country with name "N\0" which has zero instances. Remove this country name.
+data$country <- factor(data$country)
+#Confirm that it is delted.
+summary(data$country)
+```
+
+
+#Use launched date and deadline date to create another variable campaign. It is the number of days in which the startup raised funds.
+```{r}
+data[["campaign"]] <- as.integer(difftime(data$deadline, data$launched , units = c("days")))
+#summarized in new feature campaign, therefore remove deadline and launched
+data <- select(data,-deadline)
+data <- select(data,-launched)
+str(data)
+```
+#At this point we have main_category, currency, backers,country,usd_goal_real and campaign as predictors (six in number).
+
+#----------------Data exploration (look at the big picture)------------------
+
+#Look at distribution of predictors.
+```{r}
+#Backers
+#max(data$backers)
+#mean(data$backers)
+#min, max = (0,85581); 
+#mean,median = (114,15)
+ggplot(data, aes(x=backers)) + geom_histogram(breaks=c(seq(0, 200, by=10),max(data$backers)),color="black", fill="blue") + coord_cartesian(xlim=c(0,210))+
+  ggtitle('Distribution of number of projects for binned backers.')
+#The distribution of backers is skewed with outliers beyond 200. The median is low (15) compared to the maximum (85581) and the mean(114). However we do
+#not eliminate the outliers since we want to train our model to handle all cases. The new startup unseen by the training could be an outlier.
+```
+
+```{r}
+#Goal
+#min, max = (0.75,166361391); mean,median = (40124,5000)
+ggplot(data, aes(x=usd_goal_real)) + geom_histogram(breaks=c(seq(0, 100000, by=5000),max(data$usd_goal_real)),color="black", fill="blue") + coord_cartesian(xlim=c(0,100500)) +
+  ggtitle('Distribution of number of projects for binned goal (USD).')
+#This distribution is highly skewed with higher number of projects with low values of goal. Bulk of the projects have a goal of less than 25K USD.
+#The skewness is also evident from from disparate values of mean and median. Though the median is only 5000, the mean has a much higher value
+#since there are a few projects with very high goal. Since we want to predict success/failure of all projects including outliers we do not eliminate
+#outliers.
+```
+
+```{r}
+#campaign days
+#min,max= (1,92), mean,median = (33,30)
+ggplot(data, aes(x=campaign)) + geom_histogram(breaks=c(seq(0, 80, by=10),max(data$campaign)),color="black", fill="blue") + coord_cartesian(xlim=c(0,90))+
+  ggtitle('Distribution of number of projects for binned campaign days')
+#This distribution is more gaussian looking which is also evident from comparable values of mean and median. It has a clear peak at around 25 days.
+```
+
+```{r}
+#main_category
+ggplot(data.frame(data), aes(x=main_category)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ggtitle('Normalized distribution of number of projects for each category')
+#The top few categories are Film&Video, Music, Publishing. The categories with fewest projects are Dance, Journalism, Crafts.
+```
+
+```{r}
+#country
+ggplot(data.frame(data), aes(x=country)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ggtitle('Normalized distribution of number of projects for each country')
+#This is perhaps the most skewed predictor with projects from US being disproportionately high.
+```
+
+```{r}
+#currency
+ggplot(data.frame(data), aes(x=currency)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ggtitle('Normalized distribution of number of projects for each currency')
+#The distribution is similar to that of country suggesting that currency and country might be collinear. This should be removed.
+```
+
+#We have taken a preliminary look at the distribution of the predictors. We now have an idea about how the landscape of this data set looks like.
+# But the analysis so far does not  give an indication of predictive power of each feature.
+#To get this indication let us look at,
+#-----Fraction of failed and successful projects in each bin of each predictor.
+```{r}
+#backers
+ggplot() + geom_histogram(data=data, aes(x=backers,fill=state),position = "fill",breaks=c(seq(0, 200, by=10),max(data$backers))) + coord_cartesian(xlim=c(0,210)) +
+  ggtitle('Fraction of successful and failed projects for binned backers')
+#Clearly, the success rate increases with the number of backers. Success rate is ~ 90% for projects with backers>200. The proportionality is
+#linear (and very steep) from 0 to 40 backers. Beyond 40, the proporationality is linear but not as steep. This suggests that obtaining more
+#backers beyond 40 might not pay off proportionatly in terms of higher success rate.
+```
+
+```{r}
+#goal
+ggplot() + geom_histogram(data=data, aes(x=usd_goal_real,fill=state),position = "fill",breaks=c(seq(0, 100000, by=5000),max(data$usd_goal_real))) + coord_cartesian(xlim=c(0,100500)) +
+  ggtitle('Fraction of successful and failed projects for binned goal (USD)')
+#Clearly, lower goal value has higher success rate. The decrease in success rate appears to be inverse exponential.
+```
+
+```{r}
+#Campaign
+ggplot() + geom_histogram(data=data, aes(x=campaign,fill=state),position = "fill",breaks=c(seq(0, 80, by=10),max(data$campaign))) + coord_cartesian(xlim=c(0,90)) +
+  ggtitle('Fraction of successful and failed  projects for binned campaign days')
+#This features is relatively flat.
+```
+
+```{r}
+#main_Category
+ggplot(data.frame(data), aes(main_category,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ggtitle('Fraction of successful and failed projects for each category')
+#This might have some predictive value since a few categories Dance, Theatre, Comics and Music have higher success rate.
+```
+
+```{r}
+#country
+ggplot(data.frame(data), aes(country,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ggtitle('Fraction of successful and failed projects for each country')
+#US, Hongkong, Britain, Singapore are few countries with relatively higher success rate.
+```
+
+```{r}
+#currency
+ggplot(data.frame(data), aes(currency,fill=state)) + geom_bar( position="fill") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ggtitle('Fraction of successful and failed projects for each currency')
+#This graph looks similar to the last graph. This indicates  that currency and country might be collinear.
+```
+
+#---Conclusion : Backers and goal clearly have a high predicive power. The other 3 predictors (campaign, main_Category and country) have
+#relatively low predictive power. However we will retain these 3 since we do not know how these interact with backers and goal as predictors.
+
+#-------------Feature selection
+```{r}
+#Let us run a random forest to quantify the relative importance of these features
+set.seed(719)
+rfImp <- randomForest(state ~ ., data = data, ntree = 100, importance = TRUE)
+importance(rfImp,type=2)
+#                 MeanDecreaseGini
+#backers             13783.7927
+#usd_goal_real        3507.7421
+#main_category        1136.7385
+#campaign              871.7937
+#country               248.3854
+#currency              154.5834
+```
+
+```{r}
+#This is consistent with the conclusion we reached by inspecting the distributions. Since currency and country give
+#similar information and importance of currency is quite low we elimate this feature.
+data <- select(data,-currency)
+```
+
+#After data cleaning and feature selection we are left with five predictors : main_category, backers, country, usd_goal_real, campaign
+```{r}
+str(data)
+```
+
+## Preparatoion of Training and Test data
+
+We will split the data between training and testing.
+
+```{r}
+# split data into training and testing chunks
+set.seed(1234)
+# generalize outcome and predictor variables
+outcomeName <- 'state'
+#This is to use the same data set for Training and Test
+splitIndex <- createDataPartition(data[,outcomeName], p = .75, list = FALSE, times = 1)
+trainDF <- data[ splitIndex,]
+testDF  <- data[-splitIndex,]
+summary(trainDF)
+summary(testDF)
+#Dimensions of the dataset
+dim(trainDF)
+```
+
+What are the types of attribues:
+```{r}
+sapply(trainDF, class)
+```
+
+##Evaluating the Models
+
+Let's review the models.  General Linear Model Start with Lineal regression model
+
+GLM is a supervised algorithm with a classic statistical technique (Supports thousands of input variables, text and transactional data) used for:  Classification and/or Regression
+
+# a) LDA: Linear Discriminant Analysis
+```{r}
+trctl <- trainControl(method = 'cv', number = 10, savePredictions = TRUE)
+metric <- "Accuracy"
+#Removing Country as there is Country has low predictibility and it's values are in collinearity with State.
+set.seed(152)
+fit.lda <- train(state ~ main_category + usd_goal_real + backers + campaign + country, data=trainDF, method="lda", metric=metric, trControl=trctl)
+```
+# b) Nonlinear algorithms Classification Tree / Recursive Partitioning
+```{r}
+set.seed(152)
+fit.cart <- train(state ~ main_category + usd_goal_real + backers + campaign + country, data=trainDF, method="rpart", metric=metric, trControl=trctl)
+```
+# c) Final algorithm Random Forest
+```{r}
+set.seed(152)
+fit.rf <- train(state ~ main_category + usd_goal_real + backers + campaign + country, data=trainDF, method="rf", metric=metric, trControl=trctl)
+```
+
+## Evalutate model
+#################################################
+summarize accuracy of models (Training).
+
+Accuracy 
+          Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+lda  0.6406202 0.6422436 0.6472557 0.6470357 0.6492095 0.6622074    0
+cart 0.8805108 0.8894295 0.8970659 0.8966559 0.9065065 0.9078747    0
+rf   0.9239891 0.9275670 0.9289950 0.9288234 0.9305260 0.9328063    0
+
+Kappa 
+          Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+lda  0.1979303 0.2014917 0.2133044 0.2130111 0.2190411 0.2452553    0
+cart 0.7529131 0.7715821 0.7879559 0.7875136 0.8088816 0.8119920    0
+rf   0.8427643 0.8506031 0.8533402 0.8529540 0.8563793 0.8614090    0
+
+
+
+As per the table; the mean accuracy of random forest is the highest of all the three algorithms.
+
+```{r}
+results <- resamples(list(lda=fit.lda, cart=fit.cart, rf=fit.rf))
+summary(results)
+```
+## Visualize the accuracy of the models of the Training
+```{r}
+dotplot(results)
+```
+
+The most important metric is prediction on the Testing data
+
+##Let's make a prediction (accuracy of testing dataset)
+
+#a) Linear Discriminant Analysis and Confusion Matrix
+```{r}
+predictions <- predict(fit.lda, testDF)
+head(predictions)
+confusionMatrix(predictions,testDF$state)
+```
+The Balance accuracy 0.5993 is too low.
+
+
+#b) Classification Tree / Recursive Partitioning and Confusion Matrix
+```{r}
+predictions <- predict(fit.cart, testDF)
+head(predictions)
+confusionMatrix(predictions,testDF$state)
+```
+The balanced accuracy for CART is 0.8865, much higher than LDA.
+
+#c) Final algorithm Random Forest and confusion matrix
+```{r}
+predictions <- predict(fit.rf, testDF)
+head(predictions)
+confusionMatrix(predictions,testDF$state)
+```
+The Balanced accuracy for the Random forest is the highest of the other three.  0.9234
+
+
+## Deployment
+Predicting outcome of an unseen data point
+```{r}
+xnew = data[21170,c('main_category','backers','country','usd_goal_real','campaign')]
+predict(fit.rf,xnew)
+```
+
+##Conclusion:
+Using the five predictors: main_category, backers, country, usd_goal_real and campaign; we were able to create a Random forest based model which is able to predict the success of failure of the proposed project with 92% accuracy.
+
+Saving the model for the Shyniapp
+```{r}
+saveRDS(fit.rf,'ks_rf_final_model')
+```
