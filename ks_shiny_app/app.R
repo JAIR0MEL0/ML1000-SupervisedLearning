@@ -11,8 +11,8 @@ library("shiny")
 library("caret")
 library("ggplot2")
 library("randomForest")
-KS_data = read.csv('./ks_final_data.csv', header = TRUE)
-KS_model = readRDS('./ks_model')
+KS_data = read.csv('./final_ks_data.csv', header = TRUE)
+KS_model = readRDS('./ks_rf_final_model')
 
 percentage <- prop.table(table(KS_data$state)) * 100
 
@@ -34,7 +34,6 @@ ui <- fluidPage(
     )
   ),
   
-  
   fluidRow(
     column(12,
            h4("Nobody can be certain about success, but here we place some key metrics that can help you with the big picture.", class="centered-header header-explanation")
@@ -49,18 +48,20 @@ ui <- fluidPage(
            plotOutput("usdGoal")
     )
   ),
+
   
   fluidRow(
     column(6,
-           h3("Amount of projects by category"),
+           h3("Number of projects by category"),
            plotOutput("barCategory")
     ),
     
     column(6,
-           h3("Amount of projects by country"),
+           h3("Number of projects by country"),
            plotOutput("barCountry")
     )
   ),
+  
   
   fluidRow(
     column(12, 
@@ -78,9 +79,11 @@ ui <- fluidPage(
            numericInput(inputId = "backers",
                         label = "Number of Backers",
                         value = 10),
-           numericInput(inputId = "days_on_deck",
+           numericInput(inputId = "campaign",
                         label = "Days of Campaign",
-                        value = 10),
+                        value = 10)
+    ),
+    column(6,
            selectInput(inputId = "country",
                        label = "Choose your country:",
                        choices = c(
@@ -127,9 +130,7 @@ ui <- fluidPage(
                          "Technology",
                          "Theater" 
                        )
-           )            
-    ),
-    column(6,
+           ),    
            actionButton("predictButton", "Predict", class="predict-button")
     )
   )   
@@ -152,25 +153,38 @@ server <- function(input, output, session) {
   
   # Plot backers
   output$barBackers <- renderPlot({
-    ggplot(data=KS_data[c("backers")],aes(x=backers))+geom_histogram(breaks=seq(0,2000,100),col="black",fill='red')
+    ggplot(KS_data, aes(x=backers)) + geom_histogram(breaks=c(seq(0, 200, by=10),max(KS_data$backers)),color="black", fill="blue") + coord_cartesian(xlim=c(0,210))+
+      ggtitle('Distribution of number of projects for binned backers.')
   })
   
   # Plot USD goal
   output$usdGoal <- renderPlot({
-    ggplot(data=KS_data[c("usd_goal_real")],aes(x=usd_goal_real))+geom_histogram(breaks=seq(0,200000,1000),col="black",fill='green')
+    ggplot(KS_data, aes(x=usd_goal_real)) + geom_histogram(breaks=c(seq(0, 100000, by=5000),max(KS_data$usd_goal_real)),color="black", fill="blue") + coord_cartesian(xlim=c(0,100500)) +
+      ggtitle('Distribution of number of projects for binned goal (USD).')
   })
   
+  # Number of projects per country
   output$barCountry <- renderPlot({
-    ggplot(data.frame(KS_data), aes(x=country)) + geom_bar()
+    ggplot(data.frame(KS_data), aes(x=country)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+      ggtitle('Normalized distribution of number of projects for each country')
   })
   
+  # Number of projects per category
   output$barCategory <- renderPlot({
-    ggplot(data.frame(KS_data), aes(x=main_category)) + geom_bar(col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+    ggplot(data.frame(KS_data), aes(x=main_category)) + geom_bar(aes(y=..count../sum(..count..)),col='black',fill='blue') + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+      ggtitle('Normalized distribution of number of projects for each category')
+  })
+  
+  # Backers and successful projects
+  #output$successBackers <- ggplot() + geom_histogram(data=KS_data, aes(x=backers,fill=state),position = "fill",breaks=seq(0,100,5))
+  backers_state <- aggregate( cbind( backers ) ~ state , data = KS_data , FUN = sum )
+  output$backersSuccess <- renderPlot({
+    ggplot(data=backers_state, aes(x=state, y=backers)) + geom_bar(stat = "identity", fill=c("red", "green"))
   })
   
   selectedBackers <- renderText({ input$backers })
   selectedGoal <- renderText({ input$goal })
-  selectedDaysOnDeck <- renderText({ input$days_on_deck })
+  selectedDaysOnDeck <- renderText({ input$campaign })
   selectedCountry <- reactive({
     switch(input$country,
            "Austria" = "AT",
@@ -224,7 +238,7 @@ server <- function(input, output, session) {
       backers = as.integer(selectedBackers()),
       country = as.factor(selectedCountry()),
       usd_goal_real = as.numeric(selectedGoal()),
-      days_on_deck = as.integer(selectedDaysOnDeck())
+      campaign = as.integer(selectedDaysOnDeck())
     )
     
     prediction <- predict(KS_model, userChoice)
