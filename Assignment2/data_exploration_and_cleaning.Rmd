@@ -1,0 +1,284 @@
+---
+title: "Wine Reviews"
+output: pdf_document
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library("caret")
+library("lattice")
+library("ggplot2")
+library("dplyr")
+library("kableExtra")
+
+wine_data <- read.csv(file = '../csv-files/wine-reviews.csv', sep = ',', header = TRUE, na.string=c("", "NA"))
+```
+
+# Abstract
+
+As humans, we have been drinking wine from millennia. Poets would talk about their virtues, philosophers would use it to scape the prision of the mind. In ancient Greek it served important religious, social and medical purposes in the society and it is still used today in religius ceremonies. Although the benefits of its use are cuestionable, the passion that people have about it is clear.
+
+In old days wine was valued mostly from the region it was made. Although the region is still important, we have become very good at making it and mixing their varieties to fit different climates. Experts still argue about the best wine and beware of oversimplify your choice because prices can go high, really high and the best wines might not be in that group.
+
+# Objective
+
+Our goal is to cluster and study the data to understand the relationships between the features we have and hopefully get a better understanding on what makes up a good wine in modern days.
+
+# Data exploration
+
+The data that we will work with has been taken out from [Kaggle](https://www.kaggle.com/zynicide/wine-reviews). It consists mostly in categorical data about the procedence of the wine being reviewd as well indicators of price and points given by enthusiats.
+
+Attribute   | Description
+------------|-------------
+country     | Country where the wine is made
+region_1    | Region within the country
+region_2    | Sometimes the wine is grown in more than one region
+province    | Province or state where the wine is from
+varitey     | Types of grapes used to make the wine
+description | Broad explanation of the subjective feelings of its taste
+designation | The vineyard within the winery where the grapes that made the wine are from.
+winery      | The winery company that made the wine
+price       | Public price of the wine
+points      | The number of points WineEnthusiast rated the wine on a scale of 1-100 (though they say they only post reviews for wines that score >=80)
+
+## Retionship between price and and points given by enthusiasts 
+```{r}
+ggplot(wine_data, aes(x = points, y = price)) + geom_col(fill = "blue")
+```
+
+
+## Distribution of points given by wine enthusiasts
+``` {r}
+hist(wine_data$points, col = "blue", freq = TRUE)
+```
+
+### Data structure
+```{r}
+str(wine_data)
+```
+
+### Data Cleaning
+First we will get rid of some attributes that are not of our interest. 
+
+  * **X**, is just and inherited id for each row.
+  * **designation**, has two many levels, it will not give us too much information.
+  * **winery**, has too many levels, we have enough location data to work with
+
+```{r}
+wine_data <- select(wine_data,-X)
+wine_data <- select(wine_data,-designation)
+wine_data <- select(wine_data,-winery)
+```
+
+Now we can check how many incomplete rows we have to confirm if is reasonable to just remove them.
+
+```{r}
+sum(!complete.cases(wine_data))
+```
+
+Also check for duplicated rows
+```{r}
+wine_data <- distinct(wine_data)
+```
+
+There are way too many rows affected so we could loose to much information. We consider that country, province, region_1 and region_2 express the idea of *location*, so we take a look at this columns in particular.
+
+```{r}
+nrow(raw_data[raw_data$country %in% NA,])
+nrow(raw_data[raw_data$province %in% NA,])
+nrow(raw_data[raw_data$region_1 %in% NA,])
+nrow(raw_data[raw_data$region_2 %in% NA,])
+```
+The most missing values are in region_1 and region_2. We decide that keeping country and province can give us a good idea of location so we dismiss these columns.
+
+```{r}
+wine_data <- select(wine_data,-region_1)
+wine_data <- select(wine_data,-region_2)
+```
+
+We take a look at the country column
+
+```{r}
+sort(table(wine_data$country), decreasing=TRUE)
+```
+
+We can narrow down the most important countries to 10 in terms of amount of observations per country and our own knowlege.
+
+```{r}
+ordered_by_country <- sort(table(wine_data$country), decreasing=TRUE)
+top_ten_countries <- names(ordered_by_country)[1:10]
+wine_data <- wine_data[wine_data$country %in% top_ten_countries,]
+
+wine_data$country <- factor(wine_data$country)
+```
+
+### Variety
+This column is quite important as is a key feature in wines. Over the years, mixtures of grapes have multiplied their varieties, currently our data has 632 levels. There is a good consensus around 18 *noble grapes*, that are considered being the most important. They are separated into:
+
+### Red wines
+  
+  * Pinot Noir
+  * Grenache
+  * Merlot
+  * Sangiovese
+  * Nebbiolo
+  * Tempranillo
+  * Cabernet Sauvignon
+  * Syrah
+  * Malbec
+  
+### White whines
+
+  * Pinot Grigio
+  * Riesling
+  * Sauvignon Blanc
+  * Chenin Blanc
+  * Moscato
+  * Gewurztraminer
+  * Sémillon
+  * Viognier
+  * Chardonnay
+
+We first filter the rows within this noble group
+
+```{r}
+noble_grapes <- c("Pinot Noir","Grenache","Merlot","Sangiovese","Nebbiolo","Tempranillo","Cabernet Sauvignon","Syrah","Malbec", "Pinot Grigio","Riesling","Sauvignon Blanc","Chenin Blanc","Moscato","Gewurztraminer","Sémillon","Viognier","Chardonnay")
+wine_data <- wine_data[wine_data$variety %in% noble_grapes,]
+wine_data$variety <- factor(wine_data$variety)
+```
+
+We can examine the amount of observations per variety
+
+```{r}
+sort(table(wine_data$variety), decreasing=TRUE)
+```
+
+Same as with countries, we can narrow down the levels to ten based on the amount of abservations per variety and our own knowledge of the most recognizable within this group.
+
+```{r}
+top_ten_varieties <- names(sort(table(wine_data$variety),decreasing=TRUE))[1:10]
+wine_data <- wine_data[wine_data$variety %in% top_ten_varieties,]
+wine_data$variety <- factor(wine_data$variety)
+
+nrow(wine_data)
+```
+
+We now have reduced our data set to half the original size. After all this selection we finally take a look into the ramaining rows with missing values.
+
+```{r}
+sum(!complete.cases(wine_data))
+```
+
+The amount is small enough to just dismiss those rows.
+
+```{r}
+wine_data <- wine_data[complete.cases(wine_data),]
+```
+
+The amount of incomplete rows is low enough to just dismiss them.
+```{r}
+wine_data <- na.omit(wine_data)
+```
+
+We have a look over the country column
+```{r}
+plot(table(wine_data$country), lwd = 10)
+```
+
+The amount of observations is wildly unbalanced towards the US. Knowing that this country is not better than the other ones this might just has to do with the place where this data was collected. We decide then to just aproximate the amount of obaservations to somewhere close to the rest which are pretty close among them.
+
+We check the histograms for price and points to verify this selection has a similar shape.
+
+```{r}
+full_us_data <- wine_data[wine_data$country == "US", ]
+sample_us_data <- wine_data[wine_data$country == "US", ][1:5000,]
+hist(full_us_data$price, xlim = c(0, 500), col="blue", breaks = 100)
+hist(sample_us_data$price, xlim = c(0, 500), col="blue", breaks = 100)
+
+hist(full_us_data$points, xlim = c(80, 100), col="blue", breaks = 100)
+hist(sample_us_data$points, xlim = c(80, 100), col="blue", breaks = 100)
+```
+We assume now that is safe to just reduce the amount of US observations to 5000 rows.
+
+```{r}
+us_data <- wine_data[wine_data$country == "US",]
+selected_us_rows <- us_data[1:5000,]
+wine_data <- wine_data[wine_data$country != "US",]
+wine_data <- rbind(wine_data, selected_us_rows)
+
+nrow(wine_data)
+```
+
+In order to have more numeric values to do the clustering, we resolve to transform columns country and province into latitude and longitude. This will give us a logical conversion to numbers that we can work with. Using the Google maps API we are able to query the aproximate coordinates for each row.
+
+```{r}
+  # api_key value is hidden
+  google_maps_api_key <- "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  new_lat_values <- vector()
+  new_lng_values <- vector()
+  
+  for(n in 1:nrow(wine_data)) {
+    row <- wine_data[n,]
+    
+    full_url <- paste("https://maps.googleapis.com/maps/api/geocode/json?address=", row$province,"+", row$country, "&key=", google_maps_api_key, sep="")
+    
+    request_result <- GET(as.character(full_url), timeout(4), verbose = TRUE)
+    # Handle bad response status
+    # rows must be removed later
+    if(request_result$status != 200) {
+      new_lat_values <- append(new_lat_values, NA)
+      new_lng_values <- append(new_lng_values, NA) 
+    } else {
+      response <- content(request_result)
+      # handle good http response but no results
+      # rows must be removed later
+      if(length(response$results) == 0) {
+        new_lat_values <- append(new_lat_values, NA)
+        new_lng_values <- append(new_lng_values, NA) 
+      } else {
+        lat <- response$results[[1]]$geometry$location$lat
+        lng <- response$results[[1]]$geometry$location$lng
+        
+        new_lat_values <- append(new_lat_values, lat)
+        new_lng_values <- append(new_lng_values, lng) 
+      }
+    }
+  }
+  
+  wine_data$latitude <- new_lat_values
+  wine_data$longitude <- new_lng_values
+  wine_data <- na.omit(wine_data)
+```
+
+We will separate mixed data and numeric data for our analysis.
+
+For the first one we will keep variety column with its 10 current levels. We can use "Gower" distance metric to handle this.
+
+```{r}
+mixed_wine_data <- select(wine_data, -X, -description, -country, -province)
+head(mixed_wine_data)
+```
+
+We can take out this column for our numeric only subset. Since we will use "Euclidean" distance, we need to scale the data as features are not in the same scale.
+```{r}
+numeric_wines <- select(wine_data, -X, -variety, -description, -country, -province)
+numeric_wines <- scale(numeric_data)
+```
+
+```{r}
+head(wine_data)
+```
+
+Our final working data looks like this
+### Number of rows
+```{r}
+nrow(wine_data)
+str(wine_data)
+```
+
+### Number of columns
+```{r}
+ncol(wine_data)
+```
